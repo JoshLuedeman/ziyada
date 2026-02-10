@@ -1,0 +1,33 @@
+name: 📖 Documentation
+description: Report missing, incorrect, or unclear documentation
+title: "[Docs]: "
+labels: ["documentation"]
+body:
+  - type: markdown
+    attributes:
+      value: Help us improve our documentation!
+  - type: dropdown
+    id: type
+    attributes:
+      label: Documentation type
+      options:
+        - README
+        - Contributing guide
+        - Code comments
+        - API/Service documentation
+        - Installation instructions
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: What needs to be changed?
+      description: Describe what's missing, incorrect, or unclear.
+    validations:
+      required: true
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested improvement
+      description: How would you improve the documentation?
