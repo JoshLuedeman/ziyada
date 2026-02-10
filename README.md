@@ -29,7 +29,7 @@ A terminal UI for [winget](https://github.com/microsoft/winget-cli) — the Wind
 ### From Source
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/ziyada.git
+git clone https://github.com/JoshLuedeman/ziyada.git
 cd ziyada
 dotnet build
 dotnet run --project src/Ziyada
