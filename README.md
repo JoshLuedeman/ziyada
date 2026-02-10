@@ -76,6 +76,10 @@ src/Ziyada/
     └── SourcesView.cs      # Source management
 ```
 
+## Contributing
+
+Contributions welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
 ## License
 
 MIT
