@@ -13,6 +13,7 @@ public class SearchView : View
     private readonly TableView _table;
     private readonly Label _statusLabel;
     private List<Package> _packages = [];
+    private HashSet<int> _selectedIndices = [];
 
     public SearchView(WingetService winget)
     {
@@ -42,10 +43,19 @@ public class SearchView : View
         var installBtn = new Button { Text = "Install (F2/Enter)", X = 0, Y = Pos.Bottom(_table), ColorScheme = Theme.Button };
         installBtn.Accepting += (s, e) => DoInstall();
 
+        var installSelectedBtn = new Button { Text = "Install Selected (Ctrl+I)", X = Pos.Right(installBtn) + 2, Y = Pos.Bottom(_table), ColorScheme = Theme.Button };
+        installSelectedBtn.Accepting += (s, e) => DoInstallSelected();
+
+        var selectAllBtn = new Button { Text = "Select All (Ctrl+A)", X = Pos.Right(installSelectedBtn) + 2, Y = Pos.Bottom(_table), ColorScheme = Theme.Button };
+        selectAllBtn.Accepting += (s, e) => SelectAll();
+
+        var deselectAllBtn = new Button { Text = "Deselect All (Ctrl+D)", X = Pos.Right(selectAllBtn) + 2, Y = Pos.Bottom(_table), ColorScheme = Theme.Button };
+        deselectAllBtn.Accepting += (s, e) => DeselectAll();
+
         // Enter on a table row triggers install
         _table.CellActivated += (s, e) => DoInstall();
 
-        // F2 keybinding for install
+        // Keyboard shortcuts
         KeyDown += (s, e) =>
         {
             if (e.KeyCode == KeyCode.F2)
@@ -53,14 +63,35 @@ public class SearchView : View
                 DoInstall();
                 e.Handled = true;
             }
+            else if (e.KeyCode == (KeyCode.Space))
+            {
+                ToggleSelection();
+                e.Handled = true;
+            }
+            else if (e.KeyCode == (KeyCode.I | KeyCode.CtrlMask))
+            {
+                DoInstallSelected();
+                e.Handled = true;
+            }
+            else if (e.KeyCode == (KeyCode.A | KeyCode.CtrlMask))
+            {
+                SelectAll();
+                e.Handled = true;
+            }
+            else if (e.KeyCode == (KeyCode.D | KeyCode.CtrlMask))
+            {
+                DeselectAll();
+                e.Handled = true;
+            }
         };
 
-        Add(searchLabel, _searchField, searchBtn, _statusLabel, _table, installBtn);
+        Add(searchLabel, _searchField, searchBtn, _statusLabel, _table, installBtn, installSelectedBtn, selectAllBtn, deselectAllBtn);
     }
 
     private DataTable CreateDataTable()
     {
         var dt = new DataTable();
+        dt.Columns.Add("☑", typeof(string)); // Checkbox column
         dt.Columns.Add("Name", typeof(string));
         dt.Columns.Add("Id", typeof(string));
         dt.Columns.Add("Version", typeof(string));
@@ -71,8 +102,12 @@ public class SearchView : View
     private void RefreshTable()
     {
         var dt = CreateDataTable();
-        foreach (var p in _packages)
-            dt.Rows.Add(p.Name, p.Id, p.Version, p.Source);
+        for (int i = 0; i < _packages.Count; i++)
+        {
+            var p = _packages[i];
+            string checkbox = _selectedIndices.Contains(i) ? "☑" : "☐";
+            dt.Rows.Add(checkbox, p.Name, p.Id, p.Version, p.Source);
+        }
         _table.Table = new DataTableSource(dt);
         _table.SetNeedsDraw();
     }
@@ -93,6 +128,7 @@ public class SearchView : View
                 Application.Invoke(() =>
                 {
                     _packages = packages;
+                    _selectedIndices.Clear(); // Clear selections on new search
                     _statusLabel.Text = $"Found {_packages.Count} package(s)";
                     _statusLabel.SetNeedsDraw();
                     RefreshTable();
@@ -109,6 +145,32 @@ public class SearchView : View
                 Application.Wakeup();
             }
         });
+    }
+
+    private void ToggleSelection()
+    {
+        if (_table.SelectedRow < 0 || _table.SelectedRow >= _packages.Count) return;
+        
+        if (_selectedIndices.Contains(_table.SelectedRow))
+            _selectedIndices.Remove(_table.SelectedRow);
+        else
+            _selectedIndices.Add(_table.SelectedRow);
+        
+        RefreshTable();
+    }
+
+    private void SelectAll()
+    {
+        _selectedIndices.Clear();
+        for (int i = 0; i < _packages.Count; i++)
+            _selectedIndices.Add(i);
+        RefreshTable();
+    }
+
+    private void DeselectAll()
+    {
+        _selectedIndices.Clear();
+        RefreshTable();
     }
 
     private void DoInstall()
@@ -236,6 +298,192 @@ public class SearchView : View
         {
             _statusLabel.Text = $"⟳ Installing {pkg.Id} in background...";
             _statusLabel.SetNeedsDraw();
+        }
+    }
+
+    private void DoInstallSelected()
+    {
+        if (_selectedIndices.Count == 0)
+        {
+            MessageBox.ErrorQuery("No Selection", "Please select packages to install using Space or Ctrl+A", "OK");
+            return;
+        }
+
+        var selectedPackages = _selectedIndices.OrderBy(i => i).Select(i => _packages[i]).ToList();
+
+        // Confirmation dialog
+        var confirmDialog = new Dialog
+        {
+            Title = "Confirm Bulk Install",
+            Width = 60,
+            Height = 9,
+            ColorScheme = Theme.Base,
+        };
+        confirmDialog.Add(new Label
+        {
+            Text = $"Install {selectedPackages.Count} selected package(s)?",
+            X = Pos.Center(),
+            Y = 1,
+            ColorScheme = Theme.Accent,
+        });
+
+        bool confirmed = false;
+        var yesBtn = new Button { Text = "Yes", ColorScheme = Theme.Button };
+        var noBtn = new Button { Text = "No", ColorScheme = Theme.Button };
+        yesBtn.Accepting += (s, e) => { confirmed = true; Application.RequestStop(); };
+        noBtn.Accepting += (s, e) => { Application.RequestStop(); };
+        confirmDialog.AddButton(yesBtn);
+        confirmDialog.AddButton(noBtn);
+
+        Application.Run(confirmDialog);
+        if (!confirmed) return;
+
+        // Progress dialog for bulk install
+        var dialog = new Dialog
+        {
+            Title = "Installing Packages",
+            Width = 70,
+            Height = 11,
+            ColorScheme = Theme.Base,
+        };
+
+        var overallLabel = new Label
+        {
+            Text = $"Installing 0/{selectedPackages.Count} packages...",
+            X = Pos.Center(),
+            Y = 1,
+            ColorScheme = Theme.Accent,
+        };
+
+        var currentLabel = new Label
+        {
+            Text = "",
+            X = Pos.Center(),
+            Y = 2,
+            ColorScheme = Theme.Status,
+        };
+
+        var progressBar = new ProgressBar
+        {
+            X = 2,
+            Y = 4,
+            Width = Dim.Fill(2),
+            Height = 1,
+            ProgressBarStyle = ProgressBarStyle.Continuous,
+            ColorScheme = Theme.Accent,
+            Fraction = 0f,
+        };
+
+        var resultsLabel = new Label
+        {
+            Text = "",
+            X = 2,
+            Y = 6,
+            Width = Dim.Fill(2),
+            Height = 2,
+            ColorScheme = Theme.Status,
+        };
+
+        var bgBtn = new Button { Text = "Background", ColorScheme = Theme.Button };
+        bool movedToBackground = false;
+
+        bgBtn.Accepting += (s, e) =>
+        {
+            movedToBackground = true;
+            Application.RequestStop();
+        };
+        dialog.AddButton(bgBtn);
+        dialog.Add(overallLabel, currentLabel, progressBar, resultsLabel);
+
+        // Run installs sequentially
+        Task.Run(async () =>
+        {
+            int completed = 0;
+            int succeeded = 0;
+            int failed = 0;
+            var failedPackages = new List<string>();
+
+            foreach (var pkg in selectedPackages)
+            {
+                Application.Invoke(() =>
+                {
+                    currentLabel.Text = $"Installing {pkg.Id}...";
+                    currentLabel.SetNeedsDraw();
+                });
+                Application.Wakeup();
+
+                var installResult = await _winget.InstallAsync(pkg.Id);
+                completed++;
+
+                if (installResult.Success)
+                    succeeded++;
+                else
+                {
+                    failed++;
+                    failedPackages.Add(pkg.Id);
+                }
+
+                Application.Invoke(() =>
+                {
+                    progressBar.Fraction = (float)completed / selectedPackages.Count;
+                    overallLabel.Text = $"Installing {completed}/{selectedPackages.Count} packages...";
+                    resultsLabel.Text = $"✓ Succeeded: {succeeded}  ✗ Failed: {failed}";
+                    
+                    overallLabel.SetNeedsDraw();
+                    progressBar.SetNeedsDraw();
+                    resultsLabel.SetNeedsDraw();
+                });
+                Application.Wakeup();
+            }
+
+            // All done
+            Application.Invoke(() =>
+            {
+                if (!movedToBackground)
+                {
+                    currentLabel.Text = "Installation complete!";
+                    overallLabel.Text = $"Installed {completed}/{selectedPackages.Count} packages";
+                    
+                    if (failedPackages.Count > 0)
+                    {
+                        string failedList = string.Join(", ", failedPackages.Take(3));
+                        if (failedPackages.Count > 3)
+                            failedList += $", and {failedPackages.Count - 3} more...";
+                        resultsLabel.Text = $"✓ Succeeded: {succeeded}  ✗ Failed: {failed}\nFailed: {failedList}";
+                    }
+
+                    currentLabel.SetNeedsDraw();
+                    overallLabel.SetNeedsDraw();
+                    resultsLabel.SetNeedsDraw();
+
+                    // Replace Background button with Close
+                    bgBtn.Visible = false;
+                    var closeBtn = new Button { Text = "Close", ColorScheme = Theme.Button };
+                    closeBtn.Accepting += (s2, e2) => Application.RequestStop();
+                    dialog.AddButton(closeBtn);
+                }
+                else
+                {
+                    // Was moved to background — update status label
+                    _statusLabel.Text = $"✓ Installed {succeeded}/{selectedPackages.Count} packages (Failed: {failed})";
+                    _statusLabel.SetNeedsDraw();
+                }
+            });
+            Application.Wakeup();
+        });
+
+        Application.Run(dialog);
+
+        if (movedToBackground)
+        {
+            _statusLabel.Text = $"⟳ Installing {selectedPackages.Count} packages in background...";
+            _statusLabel.SetNeedsDraw();
+        }
+        else
+        {
+            // Clear selections after successful bulk install
+            _selectedIndices.Clear();
+            RefreshTable();
         }
     }
 }
