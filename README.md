@@ -7,6 +7,7 @@ A terminal UI for [winget](https://github.com/microsoft/winget-cli) — the Wind
 ## Features
 
 - **🔍 Search & Install** — Search the winget repository, browse results in a table, install with Enter or F2
+- **📦 Bulk Install/Upgrade** — Multi-select packages with checkboxes and install/upgrade them all at once with queue-based execution
 - **📦 Installed Packages** — View all installed packages with a "User-installed only" filter to hide system packages
 - **⬆️ Upgrades** — See available upgrades, upgrade individual packages or all at once
 - **🌐 Source Management** — List, add, and remove winget sources
@@ -49,6 +50,11 @@ dotnet publish src/Ziyada -c Release -r win-x64 --self-contained -p:PublishSingl
 | `Ctrl+Tab` | Switch tabs |
 | `Enter` | Activate button / Install selected package |
 | `F2` | Install selected package (Search tab) |
+| `Space` | Toggle package selection (Search & Upgrade tabs) |
+| `Ctrl+A` | Select all packages (Search & Upgrade tabs) |
+| `Ctrl+D` | Deselect all packages (Search & Upgrade tabs) |
+| `Ctrl+I` | Install selected packages (Search tab) |
+| `Ctrl+U` | Upgrade selected packages (Upgrade tab) |
 | `F5` | Refresh all tabs |
 | `F10` | Quit |
 
