@@ -63,7 +63,7 @@ public class SearchView : View
                 DoInstall();
                 e.Handled = true;
             }
-            else if (e.KeyCode == (KeyCode.Space))
+            else if (e.KeyCode == KeyCode.Space)
             {
                 ToggleSelection();
                 e.Handled = true;
