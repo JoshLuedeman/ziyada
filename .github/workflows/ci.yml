@@ -2,8 +2,8 @@ name: CI
 on:
   push:
     branches: [main]
+  # Run CI for any PR regardless of base branch. This avoids "no checks" when PRs target feature branches.
   pull_request:
-    branches: [main]
 
 jobs:
   build-and-test:
