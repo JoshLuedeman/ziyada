@@ -34,7 +34,10 @@ public class UpgradeView : View
         };
         _table.Table = new DataTableSource(CreateDataTable());
 
-        var refreshBtn = new Button { Text = "Refresh", X = 0, Y = Pos.Bottom(_table), ColorScheme = Theme.Button };
+        var detailsBtn = new Button { Text = "Details (F4)", X = 0, Y = Pos.Bottom(_table), ColorScheme = Theme.Button };
+        detailsBtn.Accepting += (s, e) => ShowPackageDetails();
+
+        var refreshBtn = new Button { Text = "Refresh", X = Pos.Right(detailsBtn) + 2, Y = Pos.Bottom(_table), ColorScheme = Theme.Button };
         refreshBtn.Accepting += (s, e) => LoadUpgradesAsync();
 
         var upgradeBtn = new Button { Text = "Upgrade Selected (Ctrl+U)", X = Pos.Right(refreshBtn) + 2, Y = Pos.Bottom(_table), ColorScheme = Theme.Button };
@@ -52,7 +55,12 @@ public class UpgradeView : View
         // Keyboard shortcuts
         KeyDown += (s, e) =>
         {
-            if (e.KeyCode == KeyCode.Space)
+            if (e.KeyCode == KeyCode.F4)
+            {
+                ShowPackageDetails();
+                e.Handled = true;
+            }
+            else if (e.KeyCode == KeyCode.Space)
             {
                 ToggleSelection();
                 e.Handled = true;
@@ -74,7 +82,7 @@ public class UpgradeView : View
             }
         };
 
-        Add(_statusLabel, _table, refreshBtn, upgradeBtn, upgradeAllBtn, selectAllBtn, deselectAllBtn);
+        Add(_statusLabel, _table, detailsBtn, refreshBtn, upgradeBtn, upgradeAllBtn, selectAllBtn, deselectAllBtn);
     }
 
     private DataTable CreateDataTable()
@@ -144,6 +152,15 @@ public class UpgradeView : View
     {
         _selectedIndices.Clear();
         RefreshTable();
+    }
+
+    private void ShowPackageDetails()
+    {
+        if (_table.SelectedRow < 0 || _table.SelectedRow >= _packages.Count) return;
+        var pkg = _packages[_table.SelectedRow];
+
+        var detailsDialog = new PackageDetailsDialog(_winget, pkg.Id, pkg.Name);
+        Application.Run(detailsDialog);
     }
 
     private void OnUpgradeSelected(object? sender, EventArgs e)
