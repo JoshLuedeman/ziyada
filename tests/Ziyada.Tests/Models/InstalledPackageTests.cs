@@ -61,16 +61,16 @@ public class InstalledPackageTests
     }
 
     [Fact]
-    public void InstalledPackage_HasUpgrade_FalseWhenAvailableVersionWhitespace()
+    public void InstalledPackage_HasUpgrade_TrueWhenAvailableVersionWhitespace()
     {
+        // Whitespace-only string is not null or empty, so HasUpgrade returns true
+        // This documents the actual behavior - whitespace isn't trimmed
         var package = new InstalledPackage
         {
             AvailableVersion = "   "
         };
 
-        // Whitespace-only should be treated as having upgrade (string is not null or empty)
-        // This tests the actual behavior of the property
-        Assert.True(package.HasUpgrade); // "   " is not null or empty
+        Assert.True(package.HasUpgrade);
     }
 
     [Fact]

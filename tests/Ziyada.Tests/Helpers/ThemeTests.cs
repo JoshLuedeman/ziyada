@@ -114,40 +114,43 @@ public class ThemeTests
     [Fact]
     public void Theme_AllSchemesHaveNormalAttribute()
     {
-        // Verify all schemes have a Normal attribute set
-        Assert.NotNull(Theme.Base.Normal);
-        Assert.NotNull(Theme.Accent.Normal);
-        Assert.NotNull(Theme.Button.Normal);
-        Assert.NotNull(Theme.StatusBarScheme.Normal);
-        Assert.NotNull(Theme.Table.Normal);
-        Assert.NotNull(Theme.TabView.Normal);
-        Assert.NotNull(Theme.Status.Normal);
+        // Verify all schemes have Normal attributes with valid foreground/background colors
+        // Attribute is a struct (value type), so we test that it has non-default color values
+        Assert.NotEqual(default, Theme.Base.Normal.Foreground);
+        Assert.NotEqual(default, Theme.Accent.Normal.Foreground);
+        Assert.NotEqual(default, Theme.Button.Normal.Foreground);
+        Assert.NotEqual(default, Theme.StatusBarScheme.Normal.Foreground);
+        Assert.NotEqual(default, Theme.Table.Normal.Foreground);
+        Assert.NotEqual(default, Theme.TabView.Normal.Foreground);
+        Assert.NotEqual(default, Theme.Status.Normal.Foreground);
     }
 
     [Fact]
     public void Theme_AllSchemesHaveFocusAttribute()
     {
-        // Verify all schemes have a Focus attribute set
-        Assert.NotNull(Theme.Base.Focus);
-        Assert.NotNull(Theme.Accent.Focus);
-        Assert.NotNull(Theme.Button.Focus);
-        Assert.NotNull(Theme.StatusBarScheme.Focus);
-        Assert.NotNull(Theme.Table.Focus);
-        Assert.NotNull(Theme.TabView.Focus);
-        Assert.NotNull(Theme.Status.Focus);
+        // Verify all schemes have Focus attributes with valid foreground/background colors
+        // Attribute is a struct (value type), so we test that it has non-default color values
+        Assert.NotEqual(default, Theme.Base.Focus.Foreground);
+        Assert.NotEqual(default, Theme.Accent.Focus.Foreground);
+        Assert.NotEqual(default, Theme.Button.Focus.Foreground);
+        Assert.NotEqual(default, Theme.StatusBarScheme.Focus.Foreground);
+        Assert.NotEqual(default, Theme.Table.Focus.Foreground);
+        Assert.NotEqual(default, Theme.TabView.Focus.Foreground);
+        Assert.NotEqual(default, Theme.Status.Focus.Foreground);
     }
 
     [Fact]
     public void Theme_AllSchemesHaveDisabledAttribute()
     {
-        // Verify all schemes have a Disabled attribute set
-        Assert.NotNull(Theme.Base.Disabled);
-        Assert.NotNull(Theme.Accent.Disabled);
-        Assert.NotNull(Theme.Button.Disabled);
-        Assert.NotNull(Theme.StatusBarScheme.Disabled);
-        Assert.NotNull(Theme.Table.Disabled);
-        Assert.NotNull(Theme.TabView.Disabled);
-        Assert.NotNull(Theme.Status.Disabled);
+        // Verify all schemes have Disabled attributes with valid foreground/background colors
+        // Attribute is a struct (value type), so we test that it has non-default color values
+        Assert.NotEqual(default, Theme.Base.Disabled.Foreground);
+        Assert.NotEqual(default, Theme.Accent.Disabled.Foreground);
+        Assert.NotEqual(default, Theme.Button.Disabled.Foreground);
+        Assert.NotEqual(default, Theme.StatusBarScheme.Disabled.Foreground);
+        Assert.NotEqual(default, Theme.Table.Disabled.Foreground);
+        Assert.NotEqual(default, Theme.TabView.Disabled.Foreground);
+        Assert.NotEqual(default, Theme.Status.Disabled.Foreground);
     }
 
     [Fact]
