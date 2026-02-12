@@ -1,7 +1,7 @@
 name: CI
 on:
   push:
-    branches: [main]
+    branches: [main, copilot/**]
   # Run CI for any PR regardless of base branch. This avoids "no checks" when PRs target feature branches.
   pull_request:
 
