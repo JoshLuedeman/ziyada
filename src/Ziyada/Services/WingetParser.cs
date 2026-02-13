@@ -107,6 +107,112 @@ public static class WingetParser
         }).Where(s => !string.IsNullOrEmpty(s.Name)).ToList();
     }
 
+    public static PackageDetails ParsePackageDetails(string output)
+    {
+        var details = new PackageDetails();
+        var lines = output.Split('\n', StringSplitOptions.None)
+                          .Select(l => l.TrimEnd('\r'))
+                          .ToList();
+
+        var dependencies = new List<string>();
+        bool inDependenciesSection = false;
+
+        foreach (var line in lines)
+        {
+            if (string.IsNullOrWhiteSpace(line))
+            {
+                inDependenciesSection = false;
+                continue;
+            }
+
+            // Check for "Found" line (special case: doesn't have ": ")
+            if (line.StartsWith("Found ") && line.Contains('[') && line.Contains(']'))
+            {
+                int idStart = line.LastIndexOf('[');
+                int idEnd = line.LastIndexOf(']');
+                if (idStart > 0 && idStart < idEnd)
+                {
+                    details.Name = line[6..idStart].Trim(); // Skip "Found "
+                    details.Id = line[(idStart + 1)..idEnd].Trim();
+                }
+                continue;
+            }
+
+            // Check if line is a key-value pair (contains ": " or ends with ":")
+            int colonIndex = line.IndexOf(": ");
+            bool isKeyValuePair = colonIndex > 0 || (line.Contains(':') && !line.StartsWith(" "));
+            
+            if (isKeyValuePair && !line.StartsWith(" "))
+            {
+                inDependenciesSection = false;
+                string key, value;
+                
+                if (colonIndex > 0)
+                {
+                    key = line[..colonIndex].Trim();
+                    value = line[(colonIndex + 2)..].Trim();
+                }
+                else
+                {
+                    // Handle "Key:" format (colon at end, no space after)
+                    int colonPos = line.IndexOf(':');
+                    key = line[..colonPos].Trim();
+                    value = colonPos < line.Length - 1 ? line[(colonPos + 1)..].Trim() : string.Empty;
+                }
+
+                switch (key)
+                {
+                    case "Version":
+                        details.Version = value;
+                        break;
+                    case "Publisher":
+                        details.Publisher = value;
+                        break;
+                    case "Description":
+                        details.Description = value;
+                        break;
+                    case "Homepage":
+                    case "Publisher Url":
+                    case "Author":
+                        if (string.IsNullOrEmpty(details.Homepage))
+                            details.Homepage = value;
+                        break;
+                    case "License":
+                        details.License = value;
+                        break;
+                    case "License Url":
+                        details.LicenseUrl = value;
+                        break;
+                    case "Release Notes":
+                        details.ReleaseNotes = value;
+                        break;
+                    case "Release Notes Url":
+                        details.ReleaseNotesUrl = value;
+                        break;
+                    case "Dependencies":
+                        inDependenciesSection = true;
+                        // The value after "Dependencies:" might be empty or contain first dependency
+                        if (!string.IsNullOrEmpty(value))
+                            dependencies.Add(value);
+                        break;
+                    case "Source":
+                        details.Source = value;
+                        break;
+                }
+            }
+            else if (inDependenciesSection && line.StartsWith(" "))
+            {
+                // Continuation of dependencies section
+                string dep = line.Trim();
+                if (!string.IsNullOrEmpty(dep))
+                    dependencies.Add(dep);
+            }
+        }
+
+        details.Dependencies = dependencies;
+        return details;
+    }
+
     private static string SafeSubstring(string s, int start, int length)
     {
         if (start >= s.Length) return string.Empty;

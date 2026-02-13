@@ -37,7 +37,10 @@ public class InstalledView : View
         };
         _table.Table = new DataTableSource(CreateDataTable());
 
-        var refreshBtn = new Button { Text = "Refresh", X = 0, Y = Pos.Bottom(_table), ColorScheme = Theme.Button };
+        var detailsBtn = new Button { Text = "Details (F4)", X = 0, Y = Pos.Bottom(_table), ColorScheme = Theme.Button };
+        detailsBtn.Accepting += (s, e) => ShowPackageDetails();
+
+        var refreshBtn = new Button { Text = "Refresh", X = Pos.Right(detailsBtn) + 2, Y = Pos.Bottom(_table), ColorScheme = Theme.Button };
         refreshBtn.Accepting += (s, e) => LoadPackagesAsync();
 
         var uninstallBtn = new Button { Text = "Uninstall (Del)", X = Pos.Right(refreshBtn) + 2, Y = Pos.Bottom(_table), ColorScheme = Theme.Button };
@@ -49,7 +52,17 @@ public class InstalledView : View
         var importBtn = new Button { Text = "Import", X = Pos.Right(exportBtn) + 2, Y = Pos.Bottom(_table), ColorScheme = Theme.Button };
         importBtn.Accepting += OnImport;
 
-        Add(_statusLabel, _userOnlyFilter, _table, refreshBtn, uninstallBtn, exportBtn, importBtn);
+        // Keyboard shortcuts
+        KeyDown += (s, e) =>
+        {
+            if (e.KeyCode == KeyCode.F4)
+            {
+                ShowPackageDetails();
+                e.Handled = true;
+            }
+        };
+
+        Add(_statusLabel, _userOnlyFilter, _table, detailsBtn, refreshBtn, uninstallBtn, exportBtn, importBtn);
     }
 
     private DataTable CreateDataTable()
@@ -89,6 +102,15 @@ public class InstalledView : View
             });
             Application.Wakeup();
         });
+    }
+
+    private void ShowPackageDetails()
+    {
+        if (_table.SelectedRow < 0 || _table.SelectedRow >= _packages.Count) return;
+        var pkg = _packages[_table.SelectedRow];
+
+        var detailsDialog = new PackageDetailsDialog(_winget, pkg.Id, pkg.Name);
+        Application.Run(detailsDialog);
     }
 
     private void OnUninstall(object? sender, EventArgs e)

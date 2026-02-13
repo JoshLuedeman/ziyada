@@ -61,4 +61,10 @@ public class WingetService
     {
         return await ProcessHelper.RunAsync($"import -i \"{filePath}\" {InstallFlags}", ct);
     }
+
+    public async Task<PackageDetails?> ShowAsync(string packageId, CancellationToken ct = default)
+    {
+        var result = await ProcessHelper.RunAsync($"show --id \"{packageId}\" --exact {SourceFlags}", ct);
+        return result.Success ? WingetParser.ParsePackageDetails(result.StandardOutput) : null;
+    }
 }

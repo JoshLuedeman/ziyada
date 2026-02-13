@@ -40,7 +40,10 @@ public class SearchView : View
             ColorScheme = Theme.Table,
         };        _table.Table = new DataTableSource(CreateDataTable());
 
-        var installBtn = new Button { Text = "Install (F2/Enter)", X = 0, Y = Pos.Bottom(_table), ColorScheme = Theme.Button };
+        var detailsBtn = new Button { Text = "Details (F4)", X = 0, Y = Pos.Bottom(_table), ColorScheme = Theme.Button };
+        detailsBtn.Accepting += (s, e) => ShowPackageDetails();
+
+        var installBtn = new Button { Text = "Install (F2/Enter)", X = Pos.Right(detailsBtn) + 2, Y = Pos.Bottom(_table), ColorScheme = Theme.Button };
         installBtn.Accepting += (s, e) => DoInstall();
 
         var installSelectedBtn = new Button { Text = "Install Selected (Ctrl+I)", X = Pos.Right(installBtn) + 2, Y = Pos.Bottom(_table), ColorScheme = Theme.Button };
@@ -61,6 +64,11 @@ public class SearchView : View
             if (e.KeyCode == KeyCode.F2)
             {
                 DoInstall();
+                e.Handled = true;
+            }
+            else if (e.KeyCode == KeyCode.F4)
+            {
+                ShowPackageDetails();
                 e.Handled = true;
             }
             else if (e.KeyCode == KeyCode.Space)
@@ -85,7 +93,7 @@ public class SearchView : View
             }
         };
 
-        Add(searchLabel, _searchField, searchBtn, _statusLabel, _table, installBtn, installSelectedBtn, selectAllBtn, deselectAllBtn);
+        Add(searchLabel, _searchField, searchBtn, _statusLabel, _table, detailsBtn, installBtn, installSelectedBtn, selectAllBtn, deselectAllBtn);
     }
 
     private DataTable CreateDataTable()
@@ -171,6 +179,15 @@ public class SearchView : View
     {
         _selectedIndices.Clear();
         RefreshTable();
+    }
+
+    private void ShowPackageDetails()
+    {
+        if (_packages.Count == 0 || _table.SelectedRow < 0 || _table.SelectedRow >= _packages.Count) return;
+        var pkg = _packages[_table.SelectedRow];
+
+        var detailsDialog = new PackageDetailsDialog(_winget, pkg.Id, pkg.Name);
+        Application.Run(detailsDialog);
     }
 
     private void DoInstall()
