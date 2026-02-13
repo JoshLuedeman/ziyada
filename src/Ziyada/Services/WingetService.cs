@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Ziyada.Helpers;
 using Ziyada.Models;
 
@@ -89,5 +90,62 @@ public class WingetService
     {
         var result = await _processHelper.RunAsync($"pin list {SourceFlags}", ct);
         return result.Success ? WingetParser.ParsePinnedPackages(result.StandardOutput) : [];
+    }
+
+    public async Task<WingetExportFile?> ParseExportFileAsync(string filePath, CancellationToken ct = default)
+    {
+        try
+        {
+            var json = await File.ReadAllTextAsync(filePath, ct);
+            return JsonSerializer.Deserialize<WingetExportFile>(json, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+        }
+        catch (JsonException)
+        {
+            return null; // Invalid JSON format
+        }
+        catch (IOException)
+        {
+            return null; // File not found or not readable
+        }
+    }
+
+    public async Task<(int succeeded, int failed, List<string> errors)> ImportWithProgressAsync(
+        string filePath,
+        Action<int, int, string>? onProgress = null,
+        CancellationToken ct = default)
+    {
+        var exportFile = await ParseExportFileAsync(filePath, ct);
+        if (exportFile == null || exportFile.Packages.Count == 0)
+        {
+            return (0, 0, ["Failed to parse export file or no packages found"]);
+        }
+
+        int succeeded = 0;
+        int failed = 0;
+        var errors = new List<string>();
+        int total = exportFile.Packages.Count;
+
+        for (int i = 0; i < exportFile.Packages.Count; i++)
+        {
+            var pkg = exportFile.Packages[i];
+            onProgress?.Invoke(i + 1, total, pkg.PackageIdentifier);
+
+            var result = await InstallAsync(pkg.PackageIdentifier, ct);
+            if (result.Success)
+            {
+                succeeded++;
+            }
+            else
+            {
+                failed++;
+                var errorMsg = result.StandardError.Split('\n').FirstOrDefault() ?? "Unknown error";
+                errors.Add($"{pkg.PackageIdentifier}: {errorMsg}");
+            }
+        }
+
+        return (succeeded, failed, errors);
     }
 }

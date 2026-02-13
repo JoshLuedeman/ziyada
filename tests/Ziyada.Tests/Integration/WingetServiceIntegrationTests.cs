@@ -441,6 +441,207 @@ public class WingetServiceIntegrationTests
         Assert.Contains("Successfully imported", result.StandardOutput);
     }
 
+    [Fact]
+    public async Task ParseExportFileAsync_ValidJson_ReturnsExportFile()
+    {
+        // Arrange
+        var tempFile = Path.GetTempFileName();
+        var json = @"{
+            ""WinGetVersion"": ""1.7.1.0"",
+            ""Sources"": [
+                {
+                    ""Name"": ""winget"",
+                    ""Identifier"": ""Microsoft.Winget.Source_8wekyb3d8bbwe"",
+                    ""Argument"": ""https://cdn.winget.microsoft.com/cache"",
+                    ""Type"": ""Microsoft.PreIndexed.Package""
+                }
+            ],
+            ""Packages"": [
+                {
+                    ""PackageIdentifier"": ""Microsoft.VisualStudioCode"",
+                    ""Version"": ""1.85.1""
+                },
+                {
+                    ""PackageIdentifier"": ""Git.Git""
+                }
+            ]
+        }";
+        await File.WriteAllTextAsync(tempFile, json);
+        var service = new WingetService();
+
+        try
+        {
+            // Act
+            var result = await service.ParseExportFileAsync(tempFile);
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Equal("1.7.1.0", result.WinGetVersion);
+            Assert.Single(result.Sources!);
+            Assert.Equal(2, result.Packages.Count);
+            Assert.Equal("Microsoft.VisualStudioCode", result.Packages[0].PackageIdentifier);
+            Assert.Equal("1.85.1", result.Packages[0].Version);
+            Assert.Equal("Git.Git", result.Packages[1].PackageIdentifier);
+            Assert.Null(result.Packages[1].Version);
+        }
+        finally
+        {
+            if (File.Exists(tempFile))
+                File.Delete(tempFile);
+        }
+    }
+
+    [Fact]
+    public async Task ParseExportFileAsync_InvalidJson_ReturnsNull()
+    {
+        // Arrange
+        var tempFile = Path.GetTempFileName();
+        await File.WriteAllTextAsync(tempFile, "invalid json content");
+        var service = new WingetService();
+
+        try
+        {
+            // Act
+            var result = await service.ParseExportFileAsync(tempFile);
+
+            // Assert
+            Assert.Null(result);
+        }
+        finally
+        {
+            if (File.Exists(tempFile))
+                File.Delete(tempFile);
+        }
+    }
+
+    [Fact]
+    public async Task ImportWithProgressAsync_ValidFile_InstallsPackagesAndReportsProgress()
+    {
+        // Arrange
+        var tempFile = Path.GetTempFileName();
+        var json = @"{
+            ""Packages"": [
+                {
+                    ""PackageIdentifier"": ""Microsoft.VisualStudioCode""
+                },
+                {
+                    ""PackageIdentifier"": ""Git.Git""
+                }
+            ]
+        }";
+        await File.WriteAllTextAsync(tempFile, json);
+
+        var mockHelper = new MockProcessHelper();
+        mockHelper.SetResponse("install", new ProcessResult
+        {
+            ExitCode = 0,
+            StandardOutput = SampleWingetOutput.InstallSuccess,
+            StandardError = string.Empty
+        });
+        var service = new WingetService(mockHelper);
+
+        var progressReports = new List<(int current, int total, string packageId)>();
+
+        try
+        {
+            // Act
+            var (succeeded, failed, errors) = await service.ImportWithProgressAsync(
+                tempFile,
+                (current, total, packageId) => progressReports.Add((current, total, packageId)));
+
+            // Assert
+            Assert.Equal(2, succeeded);
+            Assert.Equal(0, failed);
+            Assert.Empty(errors);
+            Assert.Equal(2, progressReports.Count);
+            Assert.Equal((1, 2, "Microsoft.VisualStudioCode"), progressReports[0]);
+            Assert.Equal((2, 2, "Git.Git"), progressReports[1]);
+        }
+        finally
+        {
+            if (File.Exists(tempFile))
+                File.Delete(tempFile);
+        }
+    }
+
+    [Fact]
+    public async Task ImportWithProgressAsync_SomeFailures_ReportsCorrectCounts()
+    {
+        // Arrange
+        var tempFile = Path.GetTempFileName();
+        var json = @"{
+            ""Packages"": [
+                {
+                    ""PackageIdentifier"": ""Success.Package""
+                },
+                {
+                    ""PackageIdentifier"": ""Failed.Package""
+                }
+            ]
+        }";
+        await File.WriteAllTextAsync(tempFile, json);
+
+        var mockHelper = new MockProcessHelper();
+        // First install succeeds
+        mockHelper.SetResponse("install --id \"Success.Package\" --exact", new ProcessResult
+        {
+            ExitCode = 0,
+            StandardOutput = SampleWingetOutput.InstallSuccess,
+            StandardError = string.Empty
+        });
+        // Second install fails
+        mockHelper.SetResponse("install --id \"Failed.Package\" --exact", new ProcessResult
+        {
+            ExitCode = 1,
+            StandardOutput = string.Empty,
+            StandardError = "Package not found"
+        });
+        var service = new WingetService(mockHelper);
+
+        try
+        {
+            // Act
+            var (succeeded, failed, errors) = await service.ImportWithProgressAsync(tempFile);
+
+            // Assert
+            Assert.Equal(1, succeeded);
+            Assert.Equal(1, failed);
+            Assert.Single(errors);
+            Assert.Contains("Failed.Package", errors[0]);
+        }
+        finally
+        {
+            if (File.Exists(tempFile))
+                File.Delete(tempFile);
+        }
+    }
+
+    [Fact]
+    public async Task ImportWithProgressAsync_InvalidFile_ReturnsFailure()
+    {
+        // Arrange
+        var tempFile = Path.GetTempFileName();
+        await File.WriteAllTextAsync(tempFile, "invalid json");
+        var service = new WingetService();
+
+        try
+        {
+            // Act
+            var (succeeded, failed, errors) = await service.ImportWithProgressAsync(tempFile);
+
+            // Assert
+            Assert.Equal(0, succeeded);
+            Assert.Equal(0, failed);
+            Assert.Single(errors);
+            Assert.Contains("Failed to parse", errors[0]);
+        }
+        finally
+        {
+            if (File.Exists(tempFile))
+                File.Delete(tempFile);
+        }
+    }
+
     #endregion
 
     #region Show Package Details Tests
