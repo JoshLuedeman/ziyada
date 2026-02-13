@@ -40,10 +40,10 @@ public class InstalledView : View
         var detailsBtn = new Button { Text = "Details (F4)", X = 0, Y = Pos.Bottom(_table), ColorScheme = Theme.Button };
         detailsBtn.Accepting += (s, e) => ShowPackageDetails();
 
-        var refreshBtn = new Button { Text = "Refresh", X = Pos.Right(detailsBtn) + 2, Y = Pos.Bottom(_table), ColorScheme = Theme.Button };
+        var refreshBtn = new Button { Text = "Refresh (F5)", X = Pos.Right(detailsBtn) + 2, Y = Pos.Bottom(_table), ColorScheme = Theme.Button };
         refreshBtn.Accepting += (s, e) => LoadPackagesAsync();
 
-        var uninstallBtn = new Button { Text = "Uninstall (Del)", X = Pos.Right(refreshBtn) + 2, Y = Pos.Bottom(_table), ColorScheme = Theme.Button };
+        var uninstallBtn = new Button { Text = "Uninstall (F3/Del)", X = Pos.Right(refreshBtn) + 2, Y = Pos.Bottom(_table), ColorScheme = Theme.Button };
         uninstallBtn.Accepting += OnUninstall;
 
         var exportBtn = new Button { Text = "Export", X = Pos.Right(uninstallBtn) + 2, Y = Pos.Bottom(_table), ColorScheme = Theme.Button };
@@ -58,6 +58,16 @@ public class InstalledView : View
             if (e.KeyCode == KeyCode.F4)
             {
                 ShowPackageDetails();
+                e.Handled = true;
+            }
+            else if (e.KeyCode == KeyCode.F3 || e.KeyCode == KeyCode.Delete)
+            {
+                OnUninstall(this, EventArgs.Empty);
+                e.Handled = true;
+            }
+            else if (e.KeyCode == KeyCode.F5)
+            {
+                LoadPackagesAsync();
                 e.Handled = true;
             }
         };
@@ -118,28 +128,132 @@ public class InstalledView : View
         if (_table.SelectedRow < 0 || _table.SelectedRow >= _packages.Count) return;
         var pkg = _packages[_table.SelectedRow];
 
-        int result = MessageBox.Query("Uninstall", $"Uninstall {pkg.Name} ({pkg.Id})?", "Yes", "No");
-        if (result != 0) return;
+        // Custom confirmation dialog with themed buttons
+        var confirmDialog = new Dialog
+        {
+            Title = "Confirm Uninstall",
+            Width = 55,
+            Height = 8,
+            ColorScheme = Theme.Base,
+        };
+        confirmDialog.Add(new Label
+        {
+            Text = $"Uninstall {pkg.Name} ({pkg.Id})?",
+            X = Pos.Center(),
+            Y = 1,
+            ColorScheme = Theme.Accent,
+        });
 
-        _statusLabel.Text = $"Uninstalling {pkg.Id}...";
+        bool confirmed = false;
+        var yesBtn = new Button { Text = "Yes", ColorScheme = Theme.Button };
+        var noBtn = new Button { Text = "No", ColorScheme = Theme.Button };
+        yesBtn.Accepting += (s, e) => { confirmed = true; Application.RequestStop(); };
+        noBtn.Accepting += (s, e) => { Application.RequestStop(); };
+        confirmDialog.AddButton(yesBtn);
+        confirmDialog.AddButton(noBtn);
 
+        Application.Run(confirmDialog);
+        if (!confirmed) return;
+
+        // Build progress dialog
+        var dialog = new Dialog
+        {
+            Title = $"Uninstalling {pkg.Name}",
+            Width = 60,
+            Height = 9,
+            ColorScheme = Theme.Base,
+        };
+
+        var msgLabel = new Label
+        {
+            Text = $"Uninstalling {pkg.Id}...",
+            X = Pos.Center(),
+            Y = 1,
+            ColorScheme = Theme.Accent,
+        };
+
+        var progressBar = new ProgressBar
+        {
+            X = 2,
+            Y = 3,
+            Width = Dim.Fill(2),
+            Height = 1,
+            ProgressBarStyle = ProgressBarStyle.MarqueeContinuous,
+            ColorScheme = Theme.Accent,
+        };
+
+        var bgBtn = new Button { Text = "Background", ColorScheme = Theme.Button };
+        bool movedToBackground = false;
+        object? pulseTimer = null;
+
+        bgBtn.Accepting += (s, e) =>
+        {
+            if (pulseTimer != null)
+                Application.RemoveTimeout(pulseTimer);
+            movedToBackground = true;
+            Application.RequestStop();
+        };
+        dialog.AddButton(bgBtn);
+        dialog.Add(msgLabel, progressBar);
+
+        // Pulse the marquee animation
+        pulseTimer = Application.AddTimeout(TimeSpan.FromMilliseconds(100), () =>
+        {
+            progressBar.Pulse();
+            return true;
+        });
+
+        // Run uninstall in background
         Task.Run(async () =>
         {
             var uninstallResult = await _winget.UninstallAsync(pkg.Id);
             Application.Invoke(() =>
             {
-                if (uninstallResult.Success)
+                if (pulseTimer != null)
+                    Application.RemoveTimeout(pulseTimer);
+                if (!movedToBackground)
                 {
-                    _statusLabel.Text = $"Successfully uninstalled {pkg.Id}";
-                    LoadPackagesAsync();
+                    // Still showing dialog — update it and close
+                    progressBar.ProgressBarStyle = ProgressBarStyle.Continuous;
+                    progressBar.Fraction = 1f;
+                    msgLabel.Text = uninstallResult.Success
+                        ? $"✓ Successfully uninstalled {pkg.Id}"
+                        : $"✗ Failed: {uninstallResult.StandardError.Split('\n').FirstOrDefault()}";
+                    msgLabel.ColorScheme = uninstallResult.Success ? Theme.Accent : Theme.Status;
+                    msgLabel.SetNeedsDraw();
+                    progressBar.SetNeedsDraw();
+
+                    // Replace Background button with Close
+                    bgBtn.Visible = false;
+                    var closeBtn = new Button { Text = "Close", ColorScheme = Theme.Button };
+                    closeBtn.Accepting += (s2, e2) => Application.RequestStop();
+                    dialog.AddButton(closeBtn);
+
+                    // Refresh list if successful
+                    if (uninstallResult.Success)
+                    {
+                        LoadPackagesAsync();
+                    }
                 }
                 else
                 {
-                    _statusLabel.Text = $"Failed: {uninstallResult.StandardError.Split('\n').FirstOrDefault()}";
+                    // Was moved to background — update status label
+                    _statusLabel.Text = uninstallResult.Success
+                        ? $"✓ {pkg.Id} uninstalled successfully"
+                        : $"✗ Failed to uninstall {pkg.Id}";
+                    _statusLabel.SetNeedsDraw();
+
+                    // Refresh list if successful
+                    if (uninstallResult.Success)
+                    {
+                        LoadPackagesAsync();
+                    }
                 }
             });
             Application.Wakeup();
         });
+
+        Application.Run(dialog);
     }
 
     private void OnExport(object? sender, EventArgs e)
