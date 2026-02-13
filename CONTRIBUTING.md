@@ -76,6 +76,39 @@ Use [GitHub Issues](https://github.com/JoshLuedeman/ziyada/issues) to report bug
 - **OS version** (Windows 10/11 build number)
 - **Ziyada version or commit hash**
 
+## Creating a Release
+
+Releases are automated through GitHub Actions. To create a new release:
+
+1. **Ensure you're on the main branch** and all changes are merged
+2. **Create and push a version tag** following semantic versioning:
+   ```bash
+   git tag v1.0.0
+   git push origin v1.0.0
+   ```
+3. **GitHub Actions will automatically**:
+   - Verify the tag is on the main branch
+   - Build and test the project
+   - Create a Windows x64 release build
+   - Package the executable as a ZIP file
+   - Create a GitHub Release with auto-generated notes
+   - Upload both the ZIP and raw executable as release assets
+
+### Tag Naming Convention
+
+- **Stable releases**: `v1.0.0`, `v1.2.3`, etc. (must match `v*.*.*` pattern)
+- **Prereleases**: `v1.0.0-rc1`, `v1.0.0-alpha`, `v1.0.0-beta` (automatically marked as prerelease)
+
+### Release Workflow
+
+The release workflow will:
+- ✅ Only run for tags matching the semantic version pattern (`v*.*.*`)
+- ✅ Verify the tag points to a commit on the main branch (security)
+- ✅ Run all tests before publishing
+- ✅ Create optimized, self-contained Windows x64 builds
+- ✅ Generate release notes from commit history
+- ✅ Mark prereleases automatically based on tag naming
+
 ## License
 
 This project is licensed under the [MIT License](LICENSE). By contributing, you agree that your contributions will be licensed under the same license.

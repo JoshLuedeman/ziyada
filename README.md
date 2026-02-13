@@ -28,6 +28,14 @@ A terminal UI for [winget](https://github.com/microsoft/winget-cli) — the Wind
 
 ## Installation
 
+### From Releases
+
+Download the latest release from the [Releases page](https://github.com/JoshLuedeman/ziyada/releases):
+- **Ziyada-vX.Y.Z-win-x64.zip** — Zipped executable (recommended)
+- **Ziyada.exe** — Raw executable
+
+Extract and run `Ziyada.exe`. No installation required — it's a self-contained executable.
+
 ### From Source
 
 ```bash
