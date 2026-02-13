@@ -40,7 +40,10 @@ public class InstalledView : View
         var detailsBtn = new Button { Text = "Details (F4)", X = 0, Y = Pos.Bottom(_table), ColorScheme = Theme.Button };
         detailsBtn.Accepting += (s, e) => ShowPackageDetails();
 
-        var refreshBtn = new Button { Text = "Refresh (F5)", X = Pos.Right(detailsBtn) + 2, Y = Pos.Bottom(_table), ColorScheme = Theme.Button };
+        var pinBtn = new Button { Text = "Toggle Pin (F6)", X = Pos.Right(detailsBtn) + 2, Y = Pos.Bottom(_table), ColorScheme = Theme.Button };
+        pinBtn.Accepting += (s, e) => TogglePin();
+
+        var refreshBtn = new Button { Text = "Refresh (F5)", X = Pos.Right(pinBtn) + 2, Y = Pos.Bottom(_table), ColorScheme = Theme.Button };
         refreshBtn.Accepting += (s, e) => LoadPackagesAsync();
 
         var uninstallBtn = new Button { Text = "Uninstall (F3/Del)", X = Pos.Right(refreshBtn) + 2, Y = Pos.Bottom(_table), ColorScheme = Theme.Button };
@@ -60,6 +63,11 @@ public class InstalledView : View
                 ShowPackageDetails();
                 e.Handled = true;
             }
+            else if (e.KeyCode == KeyCode.F6)
+            {
+                TogglePin();
+                e.Handled = true;
+            }
             else if (e.KeyCode == KeyCode.F3 || e.KeyCode == KeyCode.Delete)
             {
                 OnUninstall(this, EventArgs.Empty);
@@ -72,12 +80,13 @@ public class InstalledView : View
             }
         };
 
-        Add(_statusLabel, _userOnlyFilter, _table, detailsBtn, refreshBtn, uninstallBtn, exportBtn, importBtn);
+        Add(_statusLabel, _userOnlyFilter, _table, detailsBtn, pinBtn, refreshBtn, uninstallBtn, exportBtn, importBtn);
     }
 
     private DataTable CreateDataTable()
     {
         var dt = new DataTable();
+        dt.Columns.Add("📌", typeof(string)); // Pin status column
         dt.Columns.Add("Name", typeof(string));
         dt.Columns.Add("Id", typeof(string));
         dt.Columns.Add("Version", typeof(string));
@@ -89,7 +98,10 @@ public class InstalledView : View
     {
         var dt = CreateDataTable();
         foreach (var p in _packages)
-            dt.Rows.Add(p.Name, p.Id, p.Version, p.Source);
+        {
+            string pinStatus = p.IsPinned ? "📌" : "";
+            dt.Rows.Add(pinStatus, p.Name, p.Id, p.Version, p.Source);
+        }
         _table.Table = new DataTableSource(dt);
         _table.SetNeedsDraw();
     }
@@ -107,7 +119,9 @@ public class InstalledView : View
             Application.Invoke(() =>
             {
                 _packages = packages;
-                _statusLabel.Text = $"{_packages.Count} installed package(s){filterText}";
+                int pinnedCount = _packages.Count(p => p.IsPinned);
+                string pinnedText = pinnedCount > 0 ? $" ({pinnedCount} pinned)" : "";
+                _statusLabel.Text = $"{_packages.Count} installed package(s){filterText}{pinnedText}";
                 RefreshTable();
             });
             Application.Wakeup();
@@ -121,6 +135,38 @@ public class InstalledView : View
 
         var detailsDialog = new PackageDetailsDialog(_winget, pkg.Id, pkg.Name);
         Application.Run(detailsDialog);
+    }
+
+    private void TogglePin()
+    {
+        if (_table.SelectedRow < 0 || _table.SelectedRow >= _packages.Count) return;
+        var pkg = _packages[_table.SelectedRow];
+
+        _statusLabel.Text = pkg.IsPinned ? $"Unpinning {pkg.Id}..." : $"Pinning {pkg.Id}...";
+
+        Task.Run(async () =>
+        {
+            ProcessResult result;
+            if (pkg.IsPinned)
+                result = await _winget.UnpinAsync(pkg.Id);
+            else
+                result = await _winget.PinAsync(pkg.Id);
+
+            Application.Invoke(() =>
+            {
+                if (result.Success)
+                {
+                    pkg.IsPinned = !pkg.IsPinned;
+                    _statusLabel.Text = pkg.IsPinned ? $"Pinned {pkg.Id}" : $"Unpinned {pkg.Id}";
+                    RefreshTable();
+                }
+                else
+                {
+                    _statusLabel.Text = $"Failed: {result.StandardError.Split('\n').FirstOrDefault()}";
+                }
+            });
+            Application.Wakeup();
+        });
     }
 
     private void OnUninstall(object? sender, EventArgs e)

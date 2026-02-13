@@ -7,6 +7,7 @@ public class InstalledPackage
     public string Version { get; set; } = string.Empty;
     public string AvailableVersion { get; set; } = string.Empty;
     public string Source { get; set; } = string.Empty;
+    public bool IsPinned { get; set; }
 
     public bool HasUpgrade => !string.IsNullOrEmpty(AvailableVersion);
 }

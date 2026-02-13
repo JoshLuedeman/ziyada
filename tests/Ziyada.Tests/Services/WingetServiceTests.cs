@@ -133,4 +133,40 @@ public class WingetServiceTests
         await Assert.ThrowsAnyAsync<OperationCanceledException>(
             () => service.ImportAsync("/tmp/import.json", cts.Token));
     }
+
+    [Fact]
+    public async Task PinAsync_WithCancellation_ThrowsOperationCanceledException()
+    {
+        var mockHelper = new MockProcessHelper();
+        var service = new WingetService(mockHelper);
+        var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => service.PinAsync("test.package", cts.Token));
+    }
+
+    [Fact]
+    public async Task UnpinAsync_WithCancellation_ThrowsOperationCanceledException()
+    {
+        var mockHelper = new MockProcessHelper();
+        var service = new WingetService(mockHelper);
+        var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => service.UnpinAsync("test.package", cts.Token));
+    }
+
+    [Fact]
+    public async Task ListPinnedAsync_WithCancellation_ThrowsOperationCanceledException()
+    {
+        var mockHelper = new MockProcessHelper();
+        var service = new WingetService(mockHelper);
+        var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => service.ListPinnedAsync(cts.Token));
+    }
 }

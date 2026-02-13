@@ -37,7 +37,10 @@ public class UpgradeView : View
         var detailsBtn = new Button { Text = "Details (F4)", X = 0, Y = Pos.Bottom(_table), ColorScheme = Theme.Button };
         detailsBtn.Accepting += (s, e) => ShowPackageDetails();
 
-        var refreshBtn = new Button { Text = "Refresh", X = Pos.Right(detailsBtn) + 2, Y = Pos.Bottom(_table), ColorScheme = Theme.Button };
+        var pinBtn = new Button { Text = "Toggle Pin (F6)", X = Pos.Right(detailsBtn) + 2, Y = Pos.Bottom(_table), ColorScheme = Theme.Button };
+        pinBtn.Accepting += (s, e) => TogglePin();
+
+        var refreshBtn = new Button { Text = "Refresh", X = Pos.Right(pinBtn) + 2, Y = Pos.Bottom(_table), ColorScheme = Theme.Button };
         refreshBtn.Accepting += (s, e) => LoadUpgradesAsync();
 
         var upgradeBtn = new Button { Text = "Upgrade Selected (Ctrl+U)", X = Pos.Right(refreshBtn) + 2, Y = Pos.Bottom(_table), ColorScheme = Theme.Button };
@@ -58,6 +61,11 @@ public class UpgradeView : View
             if (e.KeyCode == KeyCode.F4)
             {
                 ShowPackageDetails();
+                e.Handled = true;
+            }
+            else if (e.KeyCode == KeyCode.F6)
+            {
+                TogglePin();
                 e.Handled = true;
             }
             else if (e.KeyCode == KeyCode.Space)
@@ -82,13 +90,14 @@ public class UpgradeView : View
             }
         };
 
-        Add(_statusLabel, _table, detailsBtn, refreshBtn, upgradeBtn, upgradeAllBtn, selectAllBtn, deselectAllBtn);
+        Add(_statusLabel, _table, detailsBtn, pinBtn, refreshBtn, upgradeBtn, upgradeAllBtn, selectAllBtn, deselectAllBtn);
     }
 
     private DataTable CreateDataTable()
     {
         var dt = new DataTable();
         dt.Columns.Add("☑", typeof(string)); // Checkbox column
+        dt.Columns.Add("📌", typeof(string)); // Pin status column
         dt.Columns.Add("Name", typeof(string));
         dt.Columns.Add("Id", typeof(string));
         dt.Columns.Add("Version", typeof(string));
@@ -104,7 +113,8 @@ public class UpgradeView : View
         {
             var p = _packages[i];
             string checkbox = _selectedIndices.Contains(i) ? "☑" : "☐";
-            dt.Rows.Add(checkbox, p.Name, p.Id, p.Version, p.AvailableVersion, p.Source);
+            string pinStatus = p.IsPinned ? "📌" : "";
+            dt.Rows.Add(checkbox, pinStatus, p.Name, p.Id, p.Version, p.AvailableVersion, p.Source);
         }
         _table.Table = new DataTableSource(dt);
         _table.SetNeedsDraw();
@@ -121,7 +131,9 @@ public class UpgradeView : View
             {
                 _packages = packages;
                 _selectedIndices.Clear(); // Clear selections on refresh
-                _statusLabel.Text = $"{_packages.Count} upgrade(s) available";
+                int pinnedCount = _packages.Count(p => p.IsPinned);
+                string pinnedText = pinnedCount > 0 ? $" ({pinnedCount} pinned)" : "";
+                _statusLabel.Text = $"{_packages.Count} upgrade(s) available{pinnedText}";
                 RefreshTable();
             });
             Application.Wakeup();
@@ -161,6 +173,38 @@ public class UpgradeView : View
 
         var detailsDialog = new PackageDetailsDialog(_winget, pkg.Id, pkg.Name);
         Application.Run(detailsDialog);
+    }
+
+    private void TogglePin()
+    {
+        if (_table.SelectedRow < 0 || _table.SelectedRow >= _packages.Count) return;
+        var pkg = _packages[_table.SelectedRow];
+
+        _statusLabel.Text = pkg.IsPinned ? $"Unpinning {pkg.Id}..." : $"Pinning {pkg.Id}...";
+
+        Task.Run(async () =>
+        {
+            ProcessResult result;
+            if (pkg.IsPinned)
+                result = await _winget.UnpinAsync(pkg.Id);
+            else
+                result = await _winget.PinAsync(pkg.Id);
+
+            Application.Invoke(() =>
+            {
+                if (result.Success)
+                {
+                    pkg.IsPinned = !pkg.IsPinned;
+                    _statusLabel.Text = pkg.IsPinned ? $"Pinned {pkg.Id}" : $"Unpinned {pkg.Id}";
+                    RefreshTable();
+                }
+                else
+                {
+                    _statusLabel.Text = $"Failed: {result.StandardError.Split('\n').FirstOrDefault()}";
+                }
+            });
+            Application.Wakeup();
+        });
     }
 
     private void OnUpgradeSelected(object? sender, EventArgs e)
@@ -395,7 +439,20 @@ public class UpgradeView : View
 
     private void OnUpgradeAll(object? sender, EventArgs e)
     {
-        int result = MessageBox.Query("Upgrade All", $"Upgrade all {_packages.Count} package(s)?", "Yes", "No");
+        var unpinnedCount = _packages.Count(p => !p.IsPinned);
+        var pinnedCount = _packages.Count(p => p.IsPinned);
+        
+        if (unpinnedCount == 0)
+        {
+            MessageBox.ErrorQuery("No Packages", "All packages are pinned. Unpin some packages to upgrade them.", "OK");
+            return;
+        }
+
+        string message = pinnedCount > 0 
+            ? $"Upgrade {unpinnedCount} package(s)? ({pinnedCount} pinned will be skipped)"
+            : $"Upgrade all {_packages.Count} package(s)?";
+        
+        int result = MessageBox.Query("Upgrade All", message, "Yes", "No");
         if (result != 0) return;
 
         _statusLabel.Text = "Upgrading all packages...";

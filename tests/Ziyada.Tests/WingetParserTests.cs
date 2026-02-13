@@ -546,4 +546,64 @@ public class WingetParserTests
     }
 
     #endregion
+
+    #region ParsePinnedPackages Tests
+
+    [Fact]
+    public void ParsePinnedPackages_TypicalOutput_ReturnsPinnedIds()
+    {
+        var output = string.Join("\n", new[]
+        {
+            "Package                         Version",
+            "---------------------------------------",
+            "Git.Git                         2.43.0",
+            "Microsoft.VisualStudioCode      1.85.0",
+        });
+
+        var result = WingetParser.ParsePinnedPackages(output);
+
+        Assert.Equal(2, result.Count);
+        Assert.Contains("Git.Git", result);
+        Assert.Contains("Microsoft.VisualStudioCode", result);
+    }
+
+    [Fact]
+    public void ParsePinnedPackages_EmptyOutput_ReturnsEmptyList()
+    {
+        var result = WingetParser.ParsePinnedPackages("");
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public void ParsePinnedPackages_NoData_ReturnsEmptyList()
+    {
+        var output = string.Join("\n", new[]
+        {
+            "Package                         Version",
+            "---------------------------------------",
+        });
+
+        var result = WingetParser.ParsePinnedPackages(output);
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public void ParseInstalledPackages_WithPinnedColumn_DetectsPinStatus()
+    {
+        var output = string.Join("\n", new[]
+        {
+            "Name                            Id                              Version         Available       Source  Pinned",
+            "--------------------------------------------------------------------------------------------------------------",
+            "Git                             Git.Git                         2.43.0          2.44.0          winget  < 2.44",
+            "Node.js                         OpenJS.NodeJS.LTS               20.10.0         20.11.0         winget",
+        });
+
+        var result = WingetParser.ParseInstalledPackages(output);
+
+        Assert.Equal(2, result.Count);
+        Assert.True(result[0].IsPinned);
+        Assert.False(result[1].IsPinned);
+    }
+
+    #endregion
 }
