@@ -76,6 +76,11 @@ public class ProcessHelper : IProcessHelper
 
             return result;
         }
+        catch (OperationCanceledException)
+        {
+            logger.LogWarning("Winget command was cancelled", command: arguments);
+            throw; // Re-throw cancellation exceptions
+        }
         catch (Exception ex)
         {
             logger.LogError("Exception occurred while executing winget command", 

@@ -20,6 +20,10 @@ public class SourceService
             var result = await _processHelper.RunAsync("source list", ct);
             return result.Success ? WingetParser.ParseSources(result.StandardOutput) : [];
         }
+        catch (OperationCanceledException)
+        {
+            throw; // Re-throw cancellation exceptions
+        }
         catch (Exception ex)
         {
             LoggingService.Instance.LogError("ListSourcesAsync failed", exception: ex);
