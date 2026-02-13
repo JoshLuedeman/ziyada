@@ -360,7 +360,7 @@ public class InstalledView : View
             Text = "",
             X = Pos.Center(),
             Y = 3,
-            Width = Dim.Fill(4),
+            Width = Dim.Fill(4), // 4 = 2 for left/right margins + 2 for padding
             ColorScheme = Theme.Accent,
         };
 

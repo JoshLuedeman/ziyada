@@ -486,7 +486,8 @@ public class WingetServiceIntegrationTests
         }
         finally
         {
-            File.Delete(tempFile);
+            if (File.Exists(tempFile))
+                File.Delete(tempFile);
         }
     }
 
@@ -508,7 +509,8 @@ public class WingetServiceIntegrationTests
         }
         finally
         {
-            File.Delete(tempFile);
+            if (File.Exists(tempFile))
+                File.Delete(tempFile);
         }
     }
 
@@ -557,7 +559,8 @@ public class WingetServiceIntegrationTests
         }
         finally
         {
-            File.Delete(tempFile);
+            if (File.Exists(tempFile))
+                File.Delete(tempFile);
         }
     }
 
@@ -608,7 +611,8 @@ public class WingetServiceIntegrationTests
         }
         finally
         {
-            File.Delete(tempFile);
+            if (File.Exists(tempFile))
+                File.Delete(tempFile);
         }
     }
 
@@ -633,7 +637,8 @@ public class WingetServiceIntegrationTests
         }
         finally
         {
-            File.Delete(tempFile);
+            if (File.Exists(tempFile))
+                File.Delete(tempFile);
         }
     }
 

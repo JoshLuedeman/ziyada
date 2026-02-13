@@ -102,9 +102,13 @@ public class WingetService
                 PropertyNameCaseInsensitive = true
             });
         }
-        catch
+        catch (JsonException)
         {
-            return null;
+            return null; // Invalid JSON format
+        }
+        catch (IOException)
+        {
+            return null; // File not found or not readable
         }
     }
 
