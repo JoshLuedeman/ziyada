@@ -209,7 +209,8 @@ public class InstalledView : View
             var uninstallResult = await _winget.UninstallAsync(pkg.Id);
             Application.Invoke(() =>
             {
-                Application.RemoveTimeout(pulseTimer);
+                if (pulseTimer != null)
+                    Application.RemoveTimeout(pulseTimer);
                 if (!movedToBackground)
                 {
                     // Still showing dialog — update it and close
