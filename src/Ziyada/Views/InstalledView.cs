@@ -328,18 +328,124 @@ public class InstalledView : View
         Application.Run(dialog);
         if (dialog.Canceled || dialog.Path == null) return;
 
-        _statusLabel.Text = "Importing...";
         string path = dialog.Path;
 
+        // Build progress dialog
+        var progressDialog = new Dialog
+        {
+            Title = "Importing Packages",
+            Width = 70,
+            Height = 12,
+            ColorScheme = Theme.Base,
+        };
+
+        var statusLabel = new Label
+        {
+            Text = "Reading import file...",
+            X = Pos.Center(),
+            Y = 1,
+            ColorScheme = Theme.Accent,
+        };
+
+        var progressLabel = new Label
+        {
+            Text = "0 / 0",
+            X = Pos.Center(),
+            Y = 2,
+            ColorScheme = Theme.Status,
+        };
+
+        var currentPackageLabel = new Label
+        {
+            Text = "",
+            X = Pos.Center(),
+            Y = 3,
+            Width = Dim.Fill(4),
+            ColorScheme = Theme.Accent,
+        };
+
+        var progressBar = new ProgressBar
+        {
+            X = 2,
+            Y = 5,
+            Width = Dim.Fill(2),
+            Height = 1,
+            ProgressBarStyle = ProgressBarStyle.Continuous,
+            ColorScheme = Theme.Accent,
+        };
+
+        var resultsLabel = new Label
+        {
+            Text = "",
+            X = Pos.Center(),
+            Y = 7,
+            ColorScheme = Theme.Status,
+            Visible = false,
+        };
+
+        var bgBtn = new Button { Text = "Background", ColorScheme = Theme.Button };
+        bool movedToBackground = false;
+
+        bgBtn.Accepting += (s, ev) =>
+        {
+            movedToBackground = true;
+            Application.RequestStop();
+        };
+        progressDialog.AddButton(bgBtn);
+        progressDialog.Add(statusLabel, progressLabel, currentPackageLabel, progressBar, resultsLabel);
+
+        // Run import in background
         Task.Run(async () =>
         {
-            var result = await _winget.ImportAsync(path);
+            var (succeeded, failed, errors) = await _winget.ImportWithProgressAsync(path, (current, total, packageId) =>
+            {
+                Application.Invoke(() =>
+                {
+                    progressLabel.Text = $"{current} / {total}";
+                    currentPackageLabel.Text = packageId;
+                    progressBar.Fraction = (float)current / total;
+                    statusLabel.Text = $"Installing package {current} of {total}...";
+                    statusLabel.SetNeedsDraw();
+                    progressLabel.SetNeedsDraw();
+                    currentPackageLabel.SetNeedsDraw();
+                    progressBar.SetNeedsDraw();
+                });
+                Application.Wakeup();
+            });
+
             Application.Invoke(() =>
             {
-                _statusLabel.Text = result.Success ? "Import complete" : $"Import failed: {result.StandardError.Split('\n').FirstOrDefault()}";
-                if (result.Success) LoadPackagesAsync();
+                progressBar.Fraction = 1f;
+                statusLabel.Text = "Import Complete";
+                resultsLabel.Text = $"✓ {succeeded} succeeded, ✗ {failed} failed";
+                resultsLabel.Visible = true;
+                progressLabel.Visible = false;
+                currentPackageLabel.Visible = false;
+                statusLabel.SetNeedsDraw();
+                resultsLabel.SetNeedsDraw();
+                progressBar.SetNeedsDraw();
+
+                if (!movedToBackground)
+                {
+                    // Replace Background button with Close
+                    bgBtn.Visible = false;
+                    var closeBtn = new Button { Text = "Close", ColorScheme = Theme.Button };
+                    closeBtn.Accepting += (s2, e2) => Application.RequestStop();
+                    progressDialog.AddButton(closeBtn);
+                }
+                else
+                {
+                    // Was moved to background — update status label
+                    _statusLabel.Text = $"Import complete: {succeeded} succeeded, {failed} failed";
+                    _statusLabel.SetNeedsDraw();
+                }
+
+                // Refresh list
+                LoadPackagesAsync();
             });
             Application.Wakeup();
         });
+
+        Application.Run(progressDialog);
     }
 }
