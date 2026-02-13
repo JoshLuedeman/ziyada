@@ -19,8 +19,20 @@ public class WingetService
 
     public async Task<List<Package>> SearchAsync(string query, CancellationToken ct = default)
     {
-        var result = await _processHelper.RunAsync($"search \"{query}\" {SourceFlags}", ct);
-        return result.Success ? WingetParser.ParseSearchResults(result.StandardOutput) : [];
+        try
+        {
+            var result = await _processHelper.RunAsync($"search \"{query}\" {SourceFlags}", ct);
+            return result.Success ? WingetParser.ParseSearchResults(result.StandardOutput) : [];
+        }
+        catch (OperationCanceledException)
+        {
+            throw; // Re-throw cancellation exceptions
+        }
+        catch (Exception ex)
+        {
+            LoggingService.Instance.LogError($"SearchAsync failed for query: {query}", exception: ex);
+            return [];
+        }
     }
 
     public async Task<ProcessResult> InstallAsync(string packageId, CancellationToken ct = default)
@@ -30,19 +42,43 @@ public class WingetService
 
     public async Task<List<InstalledPackage>> ListInstalledAsync(bool userOnly = false, CancellationToken ct = default)
     {
-        var result = await _processHelper.RunAsync($"list {SourceFlags}", ct);
-        if (!result.Success) return [];
+        try
+        {
+            var result = await _processHelper.RunAsync($"list {SourceFlags}", ct);
+            if (!result.Success) return [];
 
-        var packages = WingetParser.ParseInstalledPackages(result.StandardOutput);
-        if (userOnly)
-            packages = packages.Where(p => !string.IsNullOrEmpty(p.Source) && !p.Id.StartsWith("ARP\\")).ToList();
-        return packages;
+            var packages = WingetParser.ParseInstalledPackages(result.StandardOutput);
+            if (userOnly)
+                packages = packages.Where(p => !string.IsNullOrEmpty(p.Source) && !p.Id.StartsWith("ARP\\")).ToList();
+            return packages;
+        }
+        catch (OperationCanceledException)
+        {
+            throw; // Re-throw cancellation exceptions
+        }
+        catch (Exception ex)
+        {
+            LoggingService.Instance.LogError("ListInstalledAsync failed", exception: ex);
+            return [];
+        }
     }
 
     public async Task<List<InstalledPackage>> ListUpgradesAsync(CancellationToken ct = default)
     {
-        var result = await _processHelper.RunAsync($"upgrade {SourceFlags}", ct);
-        return result.Success ? WingetParser.ParseUpgradeList(result.StandardOutput) : [];
+        try
+        {
+            var result = await _processHelper.RunAsync($"upgrade {SourceFlags}", ct);
+            return result.Success ? WingetParser.ParseUpgradeList(result.StandardOutput) : [];
+        }
+        catch (OperationCanceledException)
+        {
+            throw; // Re-throw cancellation exceptions
+        }
+        catch (Exception ex)
+        {
+            LoggingService.Instance.LogError("ListUpgradesAsync failed", exception: ex);
+            return [];
+        }
     }
 
     public async Task<ProcessResult> UpgradeAsync(string packageId, CancellationToken ct = default)
@@ -72,8 +108,20 @@ public class WingetService
 
     public async Task<PackageDetails?> ShowAsync(string packageId, CancellationToken ct = default)
     {
-        var result = await _processHelper.RunAsync($"show --id \"{packageId}\" --exact {SourceFlags}", ct);
-        return result.Success ? WingetParser.ParsePackageDetails(result.StandardOutput) : null;
+        try
+        {
+            var result = await _processHelper.RunAsync($"show --id \"{packageId}\" --exact {SourceFlags}", ct);
+            return result.Success ? WingetParser.ParsePackageDetails(result.StandardOutput) : null;
+        }
+        catch (OperationCanceledException)
+        {
+            throw; // Re-throw cancellation exceptions
+        }
+        catch (Exception ex)
+        {
+            LoggingService.Instance.LogError($"ShowAsync failed for package: {packageId}", exception: ex);
+            return null;
+        }
     }
 
     public async Task<ProcessResult> PinAsync(string packageId, CancellationToken ct = default)
@@ -88,8 +136,20 @@ public class WingetService
 
     public async Task<List<string>> ListPinnedAsync(CancellationToken ct = default)
     {
-        var result = await _processHelper.RunAsync($"pin list {SourceFlags}", ct);
-        return result.Success ? WingetParser.ParsePinnedPackages(result.StandardOutput) : [];
+        try
+        {
+            var result = await _processHelper.RunAsync($"pin list {SourceFlags}", ct);
+            return result.Success ? WingetParser.ParsePinnedPackages(result.StandardOutput) : [];
+        }
+        catch (OperationCanceledException)
+        {
+            throw; // Re-throw cancellation exceptions
+        }
+        catch (Exception ex)
+        {
+            LoggingService.Instance.LogError("ListPinnedAsync failed", exception: ex);
+            return [];
+        }
     }
 
     public async Task<WingetExportFile?> ParseExportFileAsync(string filePath, CancellationToken ct = default)
@@ -102,13 +162,19 @@ public class WingetService
                 PropertyNameCaseInsensitive = true
             });
         }
-        catch (JsonException)
+        catch (OperationCanceledException)
         {
-            return null; // Invalid JSON format
+            throw; // Re-throw cancellation exceptions
         }
-        catch (IOException)
+        catch (JsonException ex)
         {
-            return null; // File not found or not readable
+            LoggingService.Instance.LogError($"Failed to parse export file (invalid JSON): {filePath}", exception: ex);
+            return null;
+        }
+        catch (IOException ex)
+        {
+            LoggingService.Instance.LogError($"Failed to read export file: {filePath}", exception: ex);
+            return null;
         }
     }
 
