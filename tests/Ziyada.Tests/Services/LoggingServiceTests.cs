@@ -129,14 +129,14 @@ public class LoggingServiceTests : IDisposable
     }
 
     [Fact]
-    public void GetRecentEntries_ReturnsInChronologicalOrder()
+    public async Task GetRecentEntries_ReturnsInChronologicalOrder()
     {
         // Arrange - Clear and add entries with distinct timestamps
         var startTime = DateTime.Now;
         _logger.LogInfo("First message");
-        Thread.Sleep(10);
+        await Task.Delay(10);
         _logger.LogInfo("Second message");
-        Thread.Sleep(10);
+        await Task.Delay(10);
         _logger.LogInfo("Third message");
 
         // Act
@@ -160,13 +160,13 @@ public class LoggingServiceTests : IDisposable
     }
 
     [Fact]
-    public void LogFile_CreatesLogFile()
+    public async Task LogFile_CreatesLogFile()
     {
         // Arrange - Log something to ensure file is created
         _logger.LogInfo("Test log file creation");
         
         // Wait a bit for file to be flushed
-        Thread.Sleep(100);
+        await Task.Delay(100);
 
         // Act
         var logFiles = Directory.GetFiles(_logDirectory, "ziyada-*.log");

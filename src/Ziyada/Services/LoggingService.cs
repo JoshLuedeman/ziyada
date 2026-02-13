@@ -101,7 +101,7 @@ public class LoggingService
         if (trimmed.Length <= maxLength)
             return trimmed;
         
-        return trimmed.Substring(0, maxLength) + "... (truncated)";
+        return trimmed[..maxLength] + "... (truncated)";
     }
 
     private void AddToRecentEntries(Models.LogLevel level, string message, string? command, string? stdout, string? stderr, int? exitCode)
