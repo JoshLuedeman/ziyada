@@ -10,6 +10,7 @@ A terminal UI for [winget](https://github.com/microsoft/winget-cli) — the Wind
 - **📦 Bulk Install/Upgrade** — Multi-select packages with checkboxes and install/upgrade them all at once with queue-based execution
 - **📦 Installed Packages** — View all installed packages with a "User-installed only" filter to hide system packages
 - **⬆️ Upgrades** — See available upgrades, upgrade individual packages or all at once
+- **📌 Package Pinning** — Pin packages to exclude them from "Upgrade All" operations using F6 or the pin button
 - **🌐 Source Management** — List, add, and remove winget sources
 - **📤 Export/Import** — Export your installed packages to JSON, import on another machine
 - **🎨 Dark Theme** — Cyberpunk-inspired dark UI with neon cyan/green accents
@@ -50,12 +51,15 @@ dotnet publish src/Ziyada -c Release -r win-x64 --self-contained -p:PublishSingl
 | `Ctrl+Tab` | Switch tabs |
 | `Enter` | Activate button / Install selected package |
 | `F2` | Install selected package (Search tab) |
+| `F3` / `Delete` | Uninstall selected package (Installed tab) |
+| `F4` | Show package details |
+| `F5` | Refresh all tabs |
+| `F6` | Toggle pin/unpin package (Installed & Upgrade tabs) |
 | `Space` | Toggle package selection (Search & Upgrade tabs) |
 | `Ctrl+A` | Select all packages (Search & Upgrade tabs) |
 | `Ctrl+D` | Deselect all packages (Search & Upgrade tabs) |
 | `Ctrl+I` | Install selected packages (Search tab) |
 | `Ctrl+U` | Upgrade selected packages (Upgrade tab) |
-| `F5` | Refresh all tabs |
 | `F10` | Quit |
 
 ## Architecture
