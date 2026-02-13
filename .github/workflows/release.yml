@@ -2,7 +2,7 @@ name: Release
 on:
   push:
     tags:
-      - 'v*'
+      - 'v*.*.*'
 permissions:
   contents: write
 jobs:
@@ -10,20 +10,65 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      # Verify tag is on main branch
+      - name: Verify tag on main branch
+        shell: bash
+        run: |
+          git fetch origin main
+          TAG_COMMIT=$(git rev-list -n 1 ${{ github.ref }})
+          if ! git merge-base --is-ancestor $TAG_COMMIT origin/main; then
+            echo "Error: Tag ${{ github.ref_name }} is not on the main branch"
+            exit 1
+          fi
+          echo "✓ Tag ${{ github.ref_name }} is on main branch"
+      
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '9.0.x'
+          cache: true
+          cache-dependency-path: '**/*.csproj'
+      
       - name: Restore
         run: dotnet restore
+      
       - name: Build
         run: dotnet build --no-restore --configuration Release
+      
       - name: Test
         run: dotnet test --no-build --configuration Release --verbosity normal
+      
       - name: Publish
         run: dotnet publish src/Ziyada/Ziyada.csproj -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o publish
+      
+      - name: Create ZIP artifact
+        shell: bash
+        run: |
+          cd publish
+          7z a -tzip ../Ziyada-${{ github.ref_name }}-win-x64.zip Ziyada.exe
+          cd ..
+          echo "✓ Created Ziyada-${{ github.ref_name }}-win-x64.zip"
+      
+      - name: Determine if prerelease
+        id: prerelease
+        shell: bash
+        run: |
+          if [[ "${{ github.ref_name }}" =~ -rc|-alpha|-beta ]]; then
+            echo "prerelease=true" >> $GITHUB_OUTPUT
+            echo "This is a prerelease version"
+          else
+            echo "prerelease=false" >> $GITHUB_OUTPUT
+            echo "This is a stable release"
+          fi
+      
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
-          files: publish/Ziyada.exe
+          prerelease: ${{ steps.prerelease.outputs.prerelease }}
+          files: |
+            Ziyada-${{ github.ref_name }}-win-x64.zip
+            publish/Ziyada.exe
