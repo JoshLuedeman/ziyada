@@ -74,4 +74,20 @@ public class WingetService
         var result = await _processHelper.RunAsync($"show --id \"{packageId}\" --exact {SourceFlags}", ct);
         return result.Success ? WingetParser.ParsePackageDetails(result.StandardOutput) : null;
     }
+
+    public async Task<ProcessResult> PinAsync(string packageId, CancellationToken ct = default)
+    {
+        return await _processHelper.RunAsync($"pin add --id \"{packageId}\" {SourceFlags}", ct);
+    }
+
+    public async Task<ProcessResult> UnpinAsync(string packageId, CancellationToken ct = default)
+    {
+        return await _processHelper.RunAsync($"pin remove --id \"{packageId}\" {SourceFlags}", ct);
+    }
+
+    public async Task<List<string>> ListPinnedAsync(CancellationToken ct = default)
+    {
+        var result = await _processHelper.RunAsync($"pin list {SourceFlags}", ct);
+        return result.Success ? WingetParser.ParsePinnedPackages(result.StandardOutput) : [];
+    }
 }

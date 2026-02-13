@@ -89,6 +89,7 @@ public static class WingetParser
             Version = d.GetValueOrDefault("Version", ""),
             AvailableVersion = d.GetValueOrDefault("Available", ""),
             Source = d.GetValueOrDefault("Source", ""),
+            IsPinned = d.GetValueOrDefault("Pinned", "").Trim() != "",
         }).Where(p => !string.IsNullOrEmpty(p.Id)).ToList();
     }
 
@@ -105,6 +106,14 @@ public static class WingetParser
             Argument = d.GetValueOrDefault("Argument", d.GetValueOrDefault("URL", "")),
             Type = d.GetValueOrDefault("Type", ""),
         }).Where(s => !string.IsNullOrEmpty(s.Name)).ToList();
+    }
+
+    public static List<string> ParsePinnedPackages(string output)
+    {
+        return ParseTable(output)
+            .Select(d => d.GetValueOrDefault("Package", d.GetValueOrDefault("Id", "")))
+            .Where(id => !string.IsNullOrEmpty(id))
+            .ToList();
     }
 
     public static PackageDetails ParsePackageDetails(string output)
