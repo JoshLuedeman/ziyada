@@ -40,7 +40,7 @@ public class InstalledView : View
         var detailsBtn = new Button { Text = "Details (F4)", X = 0, Y = Pos.Bottom(_table), ColorScheme = Theme.Button };
         detailsBtn.Accepting += (s, e) => ShowPackageDetails();
 
-        var refreshBtn = new Button { Text = "Refresh", X = Pos.Right(detailsBtn) + 2, Y = Pos.Bottom(_table), ColorScheme = Theme.Button };
+        var refreshBtn = new Button { Text = "Refresh (F5)", X = Pos.Right(detailsBtn) + 2, Y = Pos.Bottom(_table), ColorScheme = Theme.Button };
         refreshBtn.Accepting += (s, e) => LoadPackagesAsync();
 
         var uninstallBtn = new Button { Text = "Uninstall (F3/Del)", X = Pos.Right(refreshBtn) + 2, Y = Pos.Bottom(_table), ColorScheme = Theme.Button };
@@ -184,9 +184,12 @@ public class InstalledView : View
 
         var bgBtn = new Button { Text = "Background", ColorScheme = Theme.Button };
         bool movedToBackground = false;
+        object? pulseTimer = null;
 
         bgBtn.Accepting += (s, e) =>
         {
+            if (pulseTimer != null)
+                Application.RemoveTimeout(pulseTimer);
             movedToBackground = true;
             Application.RequestStop();
         };
@@ -194,7 +197,7 @@ public class InstalledView : View
         dialog.Add(msgLabel, progressBar);
 
         // Pulse the marquee animation
-        var pulseTimer = Application.AddTimeout(TimeSpan.FromMilliseconds(100), () =>
+        pulseTimer = Application.AddTimeout(TimeSpan.FromMilliseconds(100), () =>
         {
             progressBar.Pulse();
             return true;
