@@ -33,14 +33,14 @@ A terminal UI for [winget](https://github.com/microsoft/winget-cli) — the Wind
 Download the latest release from the [Releases page](https://github.com/JoshLuedeman/ziyada/releases):
 
 **x64 (Intel/AMD):**
-- **Ziyada-vX.Y.Z-win-x64.zip** — Zipped executable (recommended)
-- **Ziyada-win-x64.exe** — Raw executable
+- **Ziyada-vX.Y.Z-win-x64.zip** — Zipped executable (recommended, extract and run `Ziyada.exe`)
+- **Ziyada-win-x64.exe** — Raw executable (run directly)
 
 **ARM64 (Surface Pro, Copilot+ PCs):**
-- **Ziyada-vX.Y.Z-win-arm64.zip** — Zipped executable (recommended)
-- **Ziyada-win-arm64.exe** — Raw executable
+- **Ziyada-vX.Y.Z-win-arm64.zip** — Zipped executable (recommended, extract and run `Ziyada.exe`)
+- **Ziyada-win-arm64.exe** — Raw executable (run directly)
 
-Extract and run `Ziyada.exe`. No installation required — it's a self-contained executable.
+No installation required — all executables are self-contained.
 
 ### From Source
 
