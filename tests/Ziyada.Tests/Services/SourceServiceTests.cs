@@ -1,6 +1,7 @@
 namespace Ziyada.Tests.Services;
 
 using Ziyada.Services;
+using Ziyada.Tests.Mocks;
 
 /// <summary>
 /// Tests for SourceService focusing on cancellation behavior.
@@ -16,9 +17,18 @@ public class SourceServiceTests
     }
 
     [Fact]
+    public void SourceService_WithProcessHelper_CanBeInstantiated()
+    {
+        var mockHelper = new MockProcessHelper();
+        var service = new SourceService(mockHelper);
+        Assert.NotNull(service);
+    }
+
+    [Fact]
     public async Task ListSourcesAsync_WithCancellation_ThrowsOperationCanceledException()
     {
-        var service = new SourceService();
+        var mockHelper = new MockProcessHelper();
+        var service = new SourceService(mockHelper);
         var cts = new CancellationTokenSource();
         cts.Cancel();
 
@@ -29,7 +39,8 @@ public class SourceServiceTests
     [Fact]
     public async Task AddSourceAsync_WithCancellation_ThrowsOperationCanceledException()
     {
-        var service = new SourceService();
+        var mockHelper = new MockProcessHelper();
+        var service = new SourceService(mockHelper);
         var cts = new CancellationTokenSource();
         cts.Cancel();
 
@@ -40,7 +51,8 @@ public class SourceServiceTests
     [Fact]
     public async Task RemoveSourceAsync_WithCancellation_ThrowsOperationCanceledException()
     {
-        var service = new SourceService();
+        var mockHelper = new MockProcessHelper();
+        var service = new SourceService(mockHelper);
         var cts = new CancellationTokenSource();
         cts.Cancel();
 
