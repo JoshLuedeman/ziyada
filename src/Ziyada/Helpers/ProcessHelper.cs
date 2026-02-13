@@ -11,9 +11,14 @@ public class ProcessResult
     public bool Success => ExitCode == 0;
 }
 
-public static class ProcessHelper
+public interface IProcessHelper
 {
-    public static async Task<ProcessResult> RunAsync(string arguments, CancellationToken ct = default)
+    Task<ProcessResult> RunAsync(string arguments, CancellationToken ct = default);
+}
+
+public class ProcessHelper : IProcessHelper
+{
+    public async Task<ProcessResult> RunAsync(string arguments, CancellationToken ct = default)
     {
         var psi = new ProcessStartInfo
         {

@@ -2,18 +2,14 @@ namespace Ziyada.Tests.Services;
 
 using Ziyada.Helpers;
 using Ziyada.Services;
+using Ziyada.Tests.Mocks;
 
 /// <summary>
-/// Tests for WingetService focusing on input validation and output parsing integration.
+/// Tests for WingetService focusing on input validation and cancellation behavior.
 /// These tests verify behavior without requiring the actual winget executable.
 /// </summary>
 public class WingetServiceTests
 {
-    // Note: WingetService directly calls ProcessHelper.RunAsync which runs winget.
-    // Since we can't easily mock static methods without refactoring the production code,
-    // we focus on testing the integration between WingetService and WingetParser.
-    // Full integration tests would require the winget executable.
-
     [Fact]
     public void WingetService_CanBeInstantiated()
     {
@@ -22,9 +18,18 @@ public class WingetServiceTests
     }
 
     [Fact]
+    public void WingetService_WithProcessHelper_CanBeInstantiated()
+    {
+        var mockHelper = new MockProcessHelper();
+        var service = new WingetService(mockHelper);
+        Assert.NotNull(service);
+    }
+
+    [Fact]
     public async Task SearchAsync_WithCancellation_ThrowsOperationCanceledException()
     {
-        var service = new WingetService();
+        var mockHelper = new MockProcessHelper();
+        var service = new WingetService(mockHelper);
         var cts = new CancellationTokenSource();
         cts.Cancel();
 
@@ -36,7 +41,8 @@ public class WingetServiceTests
     [Fact]
     public async Task InstallAsync_WithCancellation_ThrowsOperationCanceledException()
     {
-        var service = new WingetService();
+        var mockHelper = new MockProcessHelper();
+        var service = new WingetService(mockHelper);
         var cts = new CancellationTokenSource();
         cts.Cancel();
 
@@ -47,7 +53,8 @@ public class WingetServiceTests
     [Fact]
     public async Task ListInstalledAsync_WithCancellation_ThrowsOperationCanceledException()
     {
-        var service = new WingetService();
+        var mockHelper = new MockProcessHelper();
+        var service = new WingetService(mockHelper);
         var cts = new CancellationTokenSource();
         cts.Cancel();
 
@@ -58,7 +65,8 @@ public class WingetServiceTests
     [Fact]
     public async Task ListUpgradesAsync_WithCancellation_ThrowsOperationCanceledException()
     {
-        var service = new WingetService();
+        var mockHelper = new MockProcessHelper();
+        var service = new WingetService(mockHelper);
         var cts = new CancellationTokenSource();
         cts.Cancel();
 
@@ -69,7 +77,8 @@ public class WingetServiceTests
     [Fact]
     public async Task UpgradeAsync_WithCancellation_ThrowsOperationCanceledException()
     {
-        var service = new WingetService();
+        var mockHelper = new MockProcessHelper();
+        var service = new WingetService(mockHelper);
         var cts = new CancellationTokenSource();
         cts.Cancel();
 
@@ -80,7 +89,8 @@ public class WingetServiceTests
     [Fact]
     public async Task UpgradeAllAsync_WithCancellation_ThrowsOperationCanceledException()
     {
-        var service = new WingetService();
+        var mockHelper = new MockProcessHelper();
+        var service = new WingetService(mockHelper);
         var cts = new CancellationTokenSource();
         cts.Cancel();
 
@@ -91,7 +101,8 @@ public class WingetServiceTests
     [Fact]
     public async Task UninstallAsync_WithCancellation_ThrowsOperationCanceledException()
     {
-        var service = new WingetService();
+        var mockHelper = new MockProcessHelper();
+        var service = new WingetService(mockHelper);
         var cts = new CancellationTokenSource();
         cts.Cancel();
 
@@ -102,7 +113,8 @@ public class WingetServiceTests
     [Fact]
     public async Task ExportAsync_WithCancellation_ThrowsOperationCanceledException()
     {
-        var service = new WingetService();
+        var mockHelper = new MockProcessHelper();
+        var service = new WingetService(mockHelper);
         var cts = new CancellationTokenSource();
         cts.Cancel();
 
@@ -113,7 +125,8 @@ public class WingetServiceTests
     [Fact]
     public async Task ImportAsync_WithCancellation_ThrowsOperationCanceledException()
     {
-        var service = new WingetService();
+        var mockHelper = new MockProcessHelper();
+        var service = new WingetService(mockHelper);
         var cts = new CancellationTokenSource();
         cts.Cancel();
 
