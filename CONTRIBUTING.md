@@ -96,8 +96,10 @@ Releases are automated through GitHub Actions. To create a new release:
 
 ### Tag Naming Convention
 
-- **Stable releases**: `v1.0.0`, `v1.2.3`, etc. (must match `v*.*.*` pattern)
+- **Stable releases**: `v1.0.0`, `v1.2.3`, etc. (semantic versioning with major.minor.patch)
 - **Prereleases**: `v1.0.0-rc1`, `v1.0.0-alpha`, `v1.0.0-beta` (automatically marked as prerelease)
+
+Tags must match the pattern `v*.*.*` (the workflow accepts any three dot-separated segments, but semantic versioning with numeric versions is strongly recommended).
 
 ### Release Workflow
 
