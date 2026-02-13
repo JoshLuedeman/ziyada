@@ -41,16 +41,29 @@ jobs:
       - name: Test
         run: dotnet test --no-build --configuration Release --verbosity normal
       
-      - name: Publish
-        run: dotnet publish src/Ziyada/Ziyada.csproj -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o publish
+      - name: Publish win-x64
+        run: dotnet publish src/Ziyada/Ziyada.csproj -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o publish/win-x64
       
-      - name: Create ZIP artifact
+      - name: Publish win-arm64
+        run: dotnet publish src/Ziyada/Ziyada.csproj -c Release -r win-arm64 --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o publish/win-arm64
+      
+      - name: Create ZIP artifacts
         shell: bash
         run: |
-          cd publish
-          7z a -tzip ../Ziyada-${{ github.ref_name }}-win-x64.zip Ziyada.exe
-          cd ..
+          cd publish/win-x64
+          7z a -tzip ../../Ziyada-${{ github.ref_name }}-win-x64.zip Ziyada.exe
+          cd ../win-arm64
+          7z a -tzip ../../Ziyada-${{ github.ref_name }}-win-arm64.zip Ziyada.exe
+          cd ../..
           echo "✓ Created Ziyada-${{ github.ref_name }}-win-x64.zip"
+          echo "✓ Created Ziyada-${{ github.ref_name }}-win-arm64.zip"
+      
+      - name: Rename executables with architecture
+        shell: bash
+        run: |
+          mv publish/win-x64/Ziyada.exe publish/win-x64/Ziyada-win-x64.exe
+          mv publish/win-arm64/Ziyada.exe publish/win-arm64/Ziyada-win-arm64.exe
+          echo "✓ Renamed executables with architecture suffix"
       
       - name: Determine if prerelease
         id: prerelease
@@ -71,4 +84,6 @@ jobs:
           prerelease: ${{ steps.prerelease.outputs.prerelease }}
           files: |
             Ziyada-${{ github.ref_name }}-win-x64.zip
-            publish/Ziyada.exe
+            Ziyada-${{ github.ref_name }}-win-arm64.zip
+            publish/win-x64/Ziyada-win-x64.exe
+            publish/win-arm64/Ziyada-win-arm64.exe
