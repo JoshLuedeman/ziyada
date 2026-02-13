@@ -15,8 +15,16 @@ public class SourceService
 
     public async Task<List<SourceInfo>> ListSourcesAsync(CancellationToken ct = default)
     {
-        var result = await _processHelper.RunAsync("source list", ct);
-        return result.Success ? WingetParser.ParseSources(result.StandardOutput) : [];
+        try
+        {
+            var result = await _processHelper.RunAsync("source list", ct);
+            return result.Success ? WingetParser.ParseSources(result.StandardOutput) : [];
+        }
+        catch (Exception ex)
+        {
+            LoggingService.Instance.LogError("ListSourcesAsync failed", exception: ex);
+            return [];
+        }
     }
 
     public async Task<ProcessResult> AddSourceAsync(string name, string url, CancellationToken ct = default)

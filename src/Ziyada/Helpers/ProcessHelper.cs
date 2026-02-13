@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text;
+using Ziyada.Services;
 
 namespace Ziyada.Helpers;
 
@@ -20,6 +21,9 @@ public class ProcessHelper : IProcessHelper
 {
     public async Task<ProcessResult> RunAsync(string arguments, CancellationToken ct = default)
     {
+        var logger = LoggingService.Instance;
+        logger.LogInfo("Executing winget command", command: arguments);
+
         var psi = new ProcessStartInfo
         {
             FileName = "winget",
@@ -39,17 +43,45 @@ public class ProcessHelper : IProcessHelper
         process.OutputDataReceived += (_, e) => { if (e.Data != null) stdout.AppendLine(e.Data); };
         process.ErrorDataReceived += (_, e) => { if (e.Data != null) stderr.AppendLine(e.Data); };
 
-        process.Start();
-        process.BeginOutputReadLine();
-        process.BeginErrorReadLine();
-
-        await process.WaitForExitAsync(ct);
-
-        return new ProcessResult
+        try
         {
-            ExitCode = process.ExitCode,
-            StandardOutput = stdout.ToString(),
-            StandardError = stderr.ToString(),
-        };
+            process.Start();
+            process.BeginOutputReadLine();
+            process.BeginErrorReadLine();
+
+            await process.WaitForExitAsync(ct);
+
+            var result = new ProcessResult
+            {
+                ExitCode = process.ExitCode,
+                StandardOutput = stdout.ToString(),
+                StandardError = stderr.ToString(),
+            };
+
+            if (result.Success)
+            {
+                logger.LogInfo("Winget command completed successfully", 
+                    command: arguments, 
+                    stdout: result.StandardOutput, 
+                    exitCode: result.ExitCode);
+            }
+            else
+            {
+                logger.LogWarning("Winget command completed with non-zero exit code", 
+                    command: arguments, 
+                    stdout: result.StandardOutput, 
+                    stderr: result.StandardError, 
+                    exitCode: result.ExitCode);
+            }
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError("Exception occurred while executing winget command", 
+                exception: ex, 
+                command: arguments);
+            throw;
+        }
     }
 }
