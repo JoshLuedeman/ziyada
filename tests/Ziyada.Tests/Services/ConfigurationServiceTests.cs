@@ -18,7 +18,7 @@ public class ConfigurationServiceTests
     }
 
     [Fact]
-    public void Settings_ShouldHaveDefaultValues()
+    public void Settings_ShouldNotBeNull()
     {
         // Arrange
         var service = ConfigurationService.Instance;
@@ -28,7 +28,7 @@ public class ConfigurationServiceTests
 
         // Assert
         Assert.NotNull(settings);
-        // Default value should be true
-        Assert.True(settings.CheckForUpdates || !settings.CheckForUpdates);
+        // CheckForUpdates can be true or false depending on config
+        // Just verify the property exists and is accessible
     }
 }

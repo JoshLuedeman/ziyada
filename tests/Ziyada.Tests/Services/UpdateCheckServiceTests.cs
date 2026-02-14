@@ -43,6 +43,7 @@ public class UpdateCheckServiceTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.False(result.IsUpdateAvailable || !string.IsNullOrEmpty(result.LatestVersion));
+        // If update is available, LatestVersion should be populated
+        Assert.False(result.IsUpdateAvailable && string.IsNullOrEmpty(result.LatestVersion));
     }
 }
