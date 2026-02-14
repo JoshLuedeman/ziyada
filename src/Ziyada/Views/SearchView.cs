@@ -273,7 +273,7 @@ public class SearchView : View
             var installResult = await _winget.InstallAsync(pkg.Id);
             Application.Invoke(() =>
             {
-                Application.RemoveTimeout(pulseTimer);
+                if (pulseTimer != null) Application.RemoveTimeout(pulseTimer);
                 if (!movedToBackground)
                 {
                     // Still showing dialog — update it and close
@@ -309,7 +309,7 @@ public class SearchView : View
         // If user closed after completion (not backgrounded), clean up
         if (!movedToBackground)
         {
-            Application.RemoveTimeout(pulseTimer);
+            if (pulseTimer != null) Application.RemoveTimeout(pulseTimer);
         }
         else
         {
