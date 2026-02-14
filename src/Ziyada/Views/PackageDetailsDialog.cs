@@ -84,7 +84,7 @@ public class PackageDetailsDialog : Dialog
                 var details = await _winget.ShowAsync(_packageId);
                 Application.Invoke(() =>
                 {
-                    Application.RemoveTimeout(pulseTimer);
+                    if (pulseTimer != null) Application.RemoveTimeout(pulseTimer);
                     _progressBar.Visible = false;
 
                     if (details != null)
@@ -107,7 +107,7 @@ public class PackageDetailsDialog : Dialog
             {
                 Application.Invoke(() =>
                 {
-                    Application.RemoveTimeout(pulseTimer);
+                    if (pulseTimer != null) Application.RemoveTimeout(pulseTimer);
                     _progressBar.Visible = false;
                     _statusLabel.Text = "Error loading package details";
                     _detailsView.Text = $"An error occurred: {ex.Message}";
