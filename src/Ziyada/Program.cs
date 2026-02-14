@@ -36,7 +36,9 @@ logsView.LoadLogsAsync();
 // Check for updates in background if enabled
 if (config.Settings.CheckForUpdates)
 {
-    _ = Task.Run(async () =>
+    // Intentionally not awaited - background task should not block startup
+    #pragma warning disable CS4014
+    Task.Run(async () =>
     {
         try
         {
@@ -56,7 +58,14 @@ if (config.Settings.CheckForUpdates)
         {
             logger.LogError("Error checking for updates", exception: ex);
         }
-    });
+    }).ContinueWith(t => 
+    {
+        if (t.IsFaulted && t.Exception != null)
+        {
+            logger.LogError("Update check task faulted", exception: t.Exception);
+        }
+    }, TaskScheduler.Default);
+    #pragma warning restore CS4014
 }
 
 var statusBar = new StatusBar(
