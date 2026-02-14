@@ -13,6 +13,7 @@ A terminal UI for [winget](https://github.com/microsoft/winget-cli) — the Wind
 - **📌 Package Pinning** — Pin packages to exclude them from "Upgrade All" operations using F6 or the pin button
 - **🌐 Source Management** — List, add, and remove winget sources
 - **📤 Export/Import** — Export your installed packages to JSON, import on another machine
+- **🔔 Auto-Update Check** — Automatically checks for new Ziyada releases on startup (configurable)
 - **🎨 Dark Theme** — Cyberpunk-inspired dark UI with neon cyan/green accents
 - **⏳ Progress Dialog** — Animated install progress with option to background long installs
 
@@ -89,15 +90,21 @@ src/Ziyada/
 ├── Program.cs              # Entry point
 ├── Helpers/
 │   ├── ProcessHelper.cs    # Async winget process runner
+│   ├── AppVersion.cs       # Version info from assembly
 │   └── Theme.cs            # Dark color theme
 ├── Models/
 │   ├── Package.cs          # Search result model
 │   ├── InstalledPackage.cs # Installed package model
-│   └── SourceInfo.cs       # Winget source model
+│   ├── SourceInfo.cs       # Winget source model
+│   ├── AppSettings.cs      # Application configuration
+│   └── UpdateInfo.cs       # Update check result
 ├── Services/
 │   ├── WingetService.cs    # Winget CLI wrapper
 │   ├── WingetParser.cs     # Tabular output parser
-│   └── SourceService.cs    # Source management
+│   ├── SourceService.cs    # Source management
+│   ├── ConfigurationService.cs # Settings management
+│   ├── UpdateCheckService.cs   # GitHub release checker
+│   └── LoggingService.cs   # Logging service
 └── Views/
     ├── MainWindow.cs       # Tabbed main window
     ├── SearchView.cs       # Search & install
@@ -105,6 +112,18 @@ src/Ziyada/
     ├── UpgradeView.cs      # Available upgrades
     └── SourcesView.cs      # Source management
 ```
+
+## Configuration
+
+Ziyada stores configuration in `%APPDATA%\Ziyada\appsettings.json`:
+
+```json
+{
+  "CheckForUpdates": true
+}
+```
+
+To disable automatic update checks, set `CheckForUpdates` to `false`.
 
 ## Contributing
 

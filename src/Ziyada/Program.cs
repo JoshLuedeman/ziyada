@@ -10,6 +10,9 @@ Application.Force16Colors = false;
 var logger = LoggingService.Instance;
 logger.LogInfo("Ziyada application started");
 
+// Initialize configuration
+var config = ConfigurationService.Instance;
+
 var wingetService = new WingetService();
 var sourceService = new SourceService();
 
@@ -29,6 +32,41 @@ mainWindow.AddTab("📋 Logs", logsView);
 
 // Load initial data for logs
 logsView.LoadLogsAsync();
+
+// Check for updates in background if enabled
+if (config.Settings.CheckForUpdates)
+{
+    // Intentionally not awaited - background task should not block startup
+    #pragma warning disable CS4014
+    Task.Run(async () =>
+    {
+        try
+        {
+            var updateCheckService = new UpdateCheckService();
+            var updateInfo = await updateCheckService.CheckForUpdatesAsync();
+            
+            if (updateInfo.IsUpdateAvailable)
+            {
+                Application.Invoke(() =>
+                {
+                    mainWindow.ShowUpdateNotification(updateInfo);
+                    Application.Wakeup();
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError("Error checking for updates", exception: ex);
+        }
+    }).ContinueWith(t => 
+    {
+        if (t.IsFaulted && t.Exception != null)
+        {
+            logger.LogError("Update check task faulted", exception: t.Exception);
+        }
+    }, TaskScheduler.Default);
+    #pragma warning restore CS4014
+}
 
 var statusBar = new StatusBar(
 [
