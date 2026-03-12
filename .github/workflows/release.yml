@@ -47,6 +47,53 @@ jobs:
       - name: Publish win-arm64
         run: dotnet publish src/Ziyada/Ziyada.csproj -c Release -r win-arm64 --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o publish/win-arm64
       
+      - name: Extract version from tag
+        id: version
+        shell: bash
+        run: |
+          VERSION="${{ github.ref_name }}"
+          VERSION="${VERSION#v}"
+          VERSION="${VERSION%%-*}"
+          DOTS="${VERSION//[^.]/}"
+          if [ ${#DOTS} -lt 3 ]; then
+            VERSION="${VERSION}.0"
+          fi
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "MSI version: ${VERSION}"
+      
+      - name: Build MSI installer (win-x64)
+        run: >
+          dotnet build installer/Ziyada.Installer/Ziyada.Installer.wixproj
+          -c Release
+          -p:Platform=x64
+          -p:PublishOutputDir=${{ github.workspace }}\publish\win-x64
+          -p:ProductVersion=${{ steps.version.outputs.version }}
+      
+      - name: Build MSI installer (win-arm64)
+        run: >
+          dotnet build installer/Ziyada.Installer/Ziyada.Installer.wixproj
+          -c Release
+          -p:Platform=arm64
+          -p:PublishOutputDir=${{ github.workspace }}\publish\win-arm64
+          -p:ProductVersion=${{ steps.version.outputs.version }}
+      
+      - name: Copy MSI artifacts
+        shell: bash
+        run: |
+          find installer/ -name "*.msi" -type f
+          find installer/Ziyada.Installer/bin/x64 -name "*.msi" -exec cp {} Ziyada-${{ github.ref_name }}-win-x64.msi \;
+          find installer/Ziyada.Installer/bin/arm64 -name "*.msi" -exec cp {} Ziyada-${{ github.ref_name }}-win-arm64.msi \;
+          if [ ! -f "Ziyada-${{ github.ref_name }}-win-x64.msi" ]; then
+            echo "Error: x64 MSI not found"
+            exit 1
+          fi
+          if [ ! -f "Ziyada-${{ github.ref_name }}-win-arm64.msi" ]; then
+            echo "Error: arm64 MSI not found"
+            exit 1
+          fi
+          echo "✓ Created Ziyada-${{ github.ref_name }}-win-x64.msi"
+          echo "✓ Created Ziyada-${{ github.ref_name }}-win-arm64.msi"
+      
       - name: Create ZIP artifacts
         shell: bash
         run: |
@@ -85,5 +132,7 @@ jobs:
           files: |
             Ziyada-${{ github.ref_name }}-win-x64.zip
             Ziyada-${{ github.ref_name }}-win-arm64.zip
+            Ziyada-${{ github.ref_name }}-win-x64.msi
+            Ziyada-${{ github.ref_name }}-win-arm64.msi
             publish/win-x64/Ziyada-win-x64.exe
             publish/win-arm64/Ziyada-win-arm64.exe
