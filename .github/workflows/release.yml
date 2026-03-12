@@ -54,8 +54,12 @@ jobs:
           VERSION="${{ github.ref_name }}"
           VERSION="${VERSION#v}"
           VERSION="${VERSION%%-*}"
-          echo "version=${VERSION}.0" >> $GITHUB_OUTPUT
-          echo "MSI version: ${VERSION}.0"
+          DOTS="${VERSION//[^.]/}"
+          if [ ${#DOTS} -lt 3 ]; then
+            VERSION="${VERSION}.0"
+          fi
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "MSI version: ${VERSION}"
       
       - name: Build MSI installer (win-x64)
         run: >
@@ -79,6 +83,14 @@ jobs:
           find installer/ -name "*.msi" -type f
           find installer/Ziyada.Installer/bin/x64 -name "*.msi" -exec cp {} Ziyada-${{ github.ref_name }}-win-x64.msi \;
           find installer/Ziyada.Installer/bin/arm64 -name "*.msi" -exec cp {} Ziyada-${{ github.ref_name }}-win-arm64.msi \;
+          if [ ! -f "Ziyada-${{ github.ref_name }}-win-x64.msi" ]; then
+            echo "Error: x64 MSI not found"
+            exit 1
+          fi
+          if [ ! -f "Ziyada-${{ github.ref_name }}-win-arm64.msi" ]; then
+            echo "Error: arm64 MSI not found"
+            exit 1
+          fi
           echo "✓ Created Ziyada-${{ github.ref_name }}-win-x64.msi"
           echo "✓ Created Ziyada-${{ github.ref_name }}-win-arm64.msi"
       
