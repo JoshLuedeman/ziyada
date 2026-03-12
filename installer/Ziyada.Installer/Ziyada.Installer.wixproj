@@ -1,0 +1,8 @@
+<Project Sdk="WixToolset.Sdk/6.0.2">
+
+  <PropertyGroup>
+    <OutputType>Package</OutputType>
+    <DefineConstants>PublishOutputDir=$(PublishOutputDir);ProductVersion=$(ProductVersion)</DefineConstants>
+  </PropertyGroup>
+
+</Project>

@@ -89,10 +89,11 @@ Releases are automated through GitHub Actions. To create a new release:
 3. **GitHub Actions will automatically**:
    - Verify the tag is on the main branch
    - Build and test the project
-   - Create a Windows x64 release build
-   - Package the executable as a ZIP file
+   - Create Windows x64 and ARM64 release builds
+   - Build MSI installers for both architectures (installs to Program Files and adds to PATH)
+   - Package executables as ZIP files
    - Create a GitHub Release with auto-generated notes
-   - Upload both the ZIP and raw executable as release assets
+   - Upload ZIP files, raw executables, and MSI installers as release assets
 
 ### Tag Naming Convention
 
@@ -107,7 +108,8 @@ The release workflow will:
 - ✅ Only run for tags matching the semantic version pattern (`v*.*.*`)
 - ✅ Verify the tag points to a commit on the main branch (security)
 - ✅ Run all tests before publishing
-- ✅ Create optimized, self-contained Windows x64 builds
+- ✅ Create optimized, self-contained Windows x64 and ARM64 builds
+- ✅ Build MSI installers with PATH configuration for both architectures
 - ✅ Generate release notes from commit history
 - ✅ Mark prereleases automatically based on tag naming
 
