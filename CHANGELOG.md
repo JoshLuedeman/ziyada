@@ -5,6 +5,16 @@ All notable changes to Ziyada will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-04-08
+
+### Added
+
+- **MSI Installer** — Official MSI installers for win-x64 and win-arm64 are now published with each release (#30)
+  - Installs Ziyada to `Program Files\Ziyada`
+  - Automatically adds the install directory to the system PATH so `ziyada` works from any terminal
+  - Supports silent installation: `msiexec /i Ziyada-vX.Y.Z-win-x64.msi /quiet`
+  - Handles upgrades and downgrades cleanly via `MajorUpgrade`
+
 ## [0.3.0] - 2026-03-12
 
 ### Added
