@@ -181,6 +181,20 @@ public class SearchView : View
         RefreshTable();
     }
 
+    internal static string GetInstallFailureSummary(ProcessResult result)
+    {
+        var stderrLine = result.StandardError?.Split('\n').FirstOrDefault(l => !string.IsNullOrWhiteSpace(l))?.Trim();
+        if (!string.IsNullOrEmpty(stderrLine))
+            return stderrLine;
+
+        // Winget often writes errors to stdout; grab the last non-empty line
+        var stdoutLine = result.StandardOutput?.Split('\n').LastOrDefault(l => !string.IsNullOrWhiteSpace(l))?.Trim();
+        if (!string.IsNullOrEmpty(stdoutLine))
+            return stdoutLine;
+
+        return "Unknown error";
+    }
+
     private void ShowPackageDetails()
     {
         if (_packages.Count == 0 || _table.SelectedRow < 0 || _table.SelectedRow >= _packages.Count) return;
@@ -271,6 +285,17 @@ public class SearchView : View
         Task.Run(async () =>
         {
             var installResult = await _winget.InstallAsync(pkg.Id);
+
+            if (!installResult.Success)
+            {
+                var failureSummary = GetInstallFailureSummary(installResult);
+                LoggingService.Instance.LogError(
+                    $"Installation failed for {pkg.Id}: {failureSummary}",
+                    stderr: installResult.StandardError,
+                    stdout: installResult.StandardOutput,
+                    exitCode: installResult.ExitCode);
+            }
+
             Application.Invoke(() =>
             {
                 if (pulseTimer != null) Application.RemoveTimeout(pulseTimer);
@@ -281,7 +306,7 @@ public class SearchView : View
                     progressBar.Fraction = 1f;
                     msgLabel.Text = installResult.Success
                         ? $"✓ Successfully installed {pkg.Id}"
-                        : $"✗ Failed: {installResult.StandardError.Split('\n').FirstOrDefault()}";
+                        : $"✗ Failed to install {pkg.Id}: {GetInstallFailureSummary(installResult)}";
                     msgLabel.ColorScheme = installResult.Success ? Theme.Accent : Theme.Status;
                     msgLabel.SetNeedsDraw();
                     progressBar.SetNeedsDraw();
@@ -297,7 +322,7 @@ public class SearchView : View
                     // Was moved to background — update status label
                     _statusLabel.Text = installResult.Success
                         ? $"✓ {pkg.Id} installed successfully"
-                        : $"✗ Failed to install {pkg.Id}";
+                        : $"✗ Failed to install {pkg.Id}: {GetInstallFailureSummary(installResult)}";
                     _statusLabel.SetNeedsDraw();
                 }
             });
@@ -360,7 +385,7 @@ public class SearchView : View
         {
             Title = "Installing Packages",
             Width = 70,
-            Height = 11,
+            Height = 13,
             ColorScheme = Theme.Base,
         };
 
@@ -397,7 +422,7 @@ public class SearchView : View
             X = 2,
             Y = 6,
             Width = Dim.Fill(2),
-            Height = 2,
+            Height = 4,
             ColorScheme = Theme.Status,
         };
 
@@ -437,7 +462,13 @@ public class SearchView : View
                 else
                 {
                     failed++;
-                    failedPackages.Add(pkg.Id);
+                    var failureSummary = GetInstallFailureSummary(installResult);
+                    failedPackages.Add($"{pkg.Id}: {failureSummary}");
+                    LoggingService.Instance.LogError(
+                        $"Installation failed for {pkg.Id}: {failureSummary}",
+                        stderr: installResult.StandardError,
+                        stdout: installResult.StandardOutput,
+                        exitCode: installResult.ExitCode);
                 }
 
                 Application.Invoke(() =>
@@ -463,10 +494,10 @@ public class SearchView : View
                     
                     if (failedPackages.Count > 0)
                     {
-                        string failedList = string.Join(", ", failedPackages.Take(3));
+                        string failedList = string.Join("\n  ", failedPackages.Take(3));
                         if (failedPackages.Count > 3)
-                            failedList += $", and {failedPackages.Count - 3} more...";
-                        resultsLabel.Text = $"✓ Succeeded: {succeeded}  ✗ Failed: {failed}\nFailed: {failedList}";
+                            failedList += $"\n  ...and {failedPackages.Count - 3} more (see Logs tab)";
+                        resultsLabel.Text = $"✓ Succeeded: {succeeded}  ✗ Failed: {failed}\n  {failedList}";
                     }
 
                     currentLabel.SetNeedsDraw();
