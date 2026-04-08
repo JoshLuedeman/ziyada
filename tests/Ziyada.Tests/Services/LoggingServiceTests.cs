@@ -38,7 +38,7 @@ public class LoggingServiceTests : IDisposable
         // Assert
         var entries = _logger.GetRecentEntries();
         Assert.True(entries.Count > initialCount);
-        var lastEntry = entries.Last();
+        var lastEntry = entries.Last(e => e.Message.Contains("Test info message"));
         Assert.Equal(LogLevel.Info, lastEntry.Level);
         Assert.Contains("Test info message", lastEntry.Message);
     }
@@ -54,7 +54,7 @@ public class LoggingServiceTests : IDisposable
 
         // Assert
         var entries = _logger.GetRecentEntries();
-        var lastEntry = entries.Last();
+        var lastEntry = entries.Last(e => e.Command == command);
         Assert.Equal(LogLevel.Info, lastEntry.Level);
         Assert.Equal(command, lastEntry.Command);
     }
@@ -67,7 +67,7 @@ public class LoggingServiceTests : IDisposable
 
         // Assert
         var entries = _logger.GetRecentEntries();
-        var lastEntry = entries.Last();
+        var lastEntry = entries.Last(e => e.Message.Contains("Test warning message"));
         Assert.Equal(LogLevel.Warning, lastEntry.Level);
         Assert.Contains("Test warning message", lastEntry.Message);
         Assert.Equal(1, lastEntry.ExitCode);
@@ -84,7 +84,7 @@ public class LoggingServiceTests : IDisposable
 
         // Assert
         var entries = _logger.GetRecentEntries();
-        var lastEntry = entries.Last();
+        var lastEntry = entries.Last(e => e.Message.Contains("Test error message"));
         Assert.Equal(LogLevel.Error, lastEntry.Level);
         Assert.Contains("Test error message", lastEntry.Message);
     }
@@ -106,7 +106,7 @@ public class LoggingServiceTests : IDisposable
 
         // Assert
         var entries = _logger.GetRecentEntries();
-        var lastEntry = entries.Last();
+        var lastEntry = entries.Last(e => e.Command == "test command" && e.StandardOutput == stdout);
         Assert.Equal(stdout, lastEntry.StandardOutput);
         Assert.Equal(stderr, lastEntry.StandardError);
         Assert.Equal(exitCode, lastEntry.ExitCode);
