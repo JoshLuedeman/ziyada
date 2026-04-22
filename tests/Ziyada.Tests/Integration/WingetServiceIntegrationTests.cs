@@ -165,6 +165,48 @@ public class WingetServiceIntegrationTests
         Assert.Contains("Failed to install", result.StandardError);
     }
 
+    [Fact]
+    public async Task InstallAsync_WithSource_IncludesSourceFlag()
+    {
+        // Arrange
+        var mockHelper = new MockProcessHelper();
+        mockHelper.SetResponse("install", new ProcessResult
+        {
+            ExitCode = 0,
+            StandardOutput = SampleWingetOutput.InstallSuccess,
+            StandardError = string.Empty
+        });
+        var service = new WingetService(mockHelper);
+
+        // Act
+        await service.InstallAsync("Git.Git", source: "winget");
+
+        // Assert
+        Assert.Single(mockHelper.ExecutedCommands);
+        Assert.Contains("--source \"winget\"", mockHelper.ExecutedCommands[0]);
+    }
+
+    [Fact]
+    public async Task InstallAsync_WithoutSource_OmitsSourceFlag()
+    {
+        // Arrange
+        var mockHelper = new MockProcessHelper();
+        mockHelper.SetResponse("install", new ProcessResult
+        {
+            ExitCode = 0,
+            StandardOutput = SampleWingetOutput.InstallSuccess,
+            StandardError = string.Empty
+        });
+        var service = new WingetService(mockHelper);
+
+        // Act
+        await service.InstallAsync("Git.Git");
+
+        // Assert
+        Assert.Single(mockHelper.ExecutedCommands);
+        Assert.DoesNotContain("--source", mockHelper.ExecutedCommands[0]);
+    }
+
     #endregion
 
     #region List Installed Tests

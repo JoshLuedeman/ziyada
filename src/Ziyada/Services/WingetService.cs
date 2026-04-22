@@ -35,9 +35,10 @@ public class WingetService
         }
     }
 
-    public async Task<ProcessResult> InstallAsync(string packageId, CancellationToken ct = default)
+    public async Task<ProcessResult> InstallAsync(string packageId, string? source = null, CancellationToken ct = default)
     {
-        return await _processHelper.RunAsync($"install --id \"{packageId}\" --exact {InstallFlags}", ct);
+        var sourceFlag = string.IsNullOrWhiteSpace(source) ? "" : $"--source \"{source}\"";
+        return await _processHelper.RunAsync($"install --id \"{packageId}\" --exact {sourceFlag} {InstallFlags}", ct);
     }
 
     public async Task<List<InstalledPackage>> ListInstalledAsync(bool userOnly = false, CancellationToken ct = default)
@@ -190,8 +191,8 @@ public class WingetService
         }
 
         var allPackages = exportFile.Sources
-            .SelectMany(s => s.Packages)
-            .Where(p => !string.IsNullOrWhiteSpace(p.PackageIdentifier))
+            .SelectMany(s => s.Packages.Select(p => (Package: p, SourceName: s.SourceDetails?.Name)))
+            .Where(x => !string.IsNullOrWhiteSpace(x.Package.PackageIdentifier))
             .ToList();
 
         if (allPackages.Count == 0)
@@ -206,10 +207,10 @@ public class WingetService
 
         for (int i = 0; i < allPackages.Count; i++)
         {
-            var pkg = allPackages[i];
+            var (pkg, sourceName) = allPackages[i];
             onProgress?.Invoke(i + 1, total, pkg.PackageIdentifier);
 
-            var result = await InstallAsync(pkg.PackageIdentifier, ct);
+            var result = await InstallAsync(pkg.PackageIdentifier, sourceName, ct);
             if (result.Success)
             {
                 succeeded++;

@@ -47,7 +47,7 @@ public class WingetServiceTests
         cts.Cancel();
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(
-            () => service.InstallAsync("test.package", cts.Token));
+            () => service.InstallAsync("test.package", ct: cts.Token));
     }
 
     [Fact]
