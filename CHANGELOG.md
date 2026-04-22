@@ -5,6 +5,12 @@ All notable changes to Ziyada will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.1] - 2026-04-22
+
+### Fixed
+
+- **MSI installer** — Embedded the cabinet file directly into the MSI so installers work when run from any directory (e.g. Downloads) without requiring a companion `cab1.cab` file (#34)
+
 ## [0.4.0] - 2026-04-08
 
 ### Added
