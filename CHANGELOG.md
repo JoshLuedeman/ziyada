@@ -5,6 +5,17 @@ All notable changes to Ziyada will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-04-22
+
+### Fixed
+
+- **Import from export file** — Fixed import always reporting "0 succeeded, 0 failed" because the JSON model didn't match the real `winget export` format (packages are nested under `Sources[].Packages[]`, not a top-level array)
+- Improved error messaging when import file has no packages or fails to parse
+
+### Added
+
+- **Source-aware import** — Imported packages are now installed with `--source` matching the source they were exported from, ensuring packages from custom/non-default sources install correctly
+
 ## [0.4.1] - 2026-04-22
 
 ### Fixed
