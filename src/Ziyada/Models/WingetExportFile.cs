@@ -3,11 +3,16 @@ namespace Ziyada.Models;
 public class WingetExportFile
 {
     public string? WinGetVersion { get; set; }
-    public List<WingetSource>? Sources { get; set; }
-    public List<WingetPackageEntry> Packages { get; set; } = [];
+    public List<WingetSource> Sources { get; set; } = [];
 }
 
 public class WingetSource
+{
+    public List<WingetPackageEntry> Packages { get; set; } = [];
+    public WingetSourceDetails? SourceDetails { get; set; }
+}
+
+public class WingetSourceDetails
 {
     public string? Name { get; set; }
     public string? Identifier { get; set; }

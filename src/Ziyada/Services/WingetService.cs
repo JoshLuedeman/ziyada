@@ -184,19 +184,29 @@ public class WingetService
         CancellationToken ct = default)
     {
         var exportFile = await ParseExportFileAsync(filePath, ct);
-        if (exportFile == null || exportFile.Packages.Count == 0)
+        if (exportFile == null)
         {
-            return (0, 0, ["Failed to parse export file or no packages found"]);
+            return (0, 0, ["Failed to parse export file"]);
+        }
+
+        var allPackages = exportFile.Sources
+            .SelectMany(s => s.Packages)
+            .Where(p => !string.IsNullOrWhiteSpace(p.PackageIdentifier))
+            .ToList();
+
+        if (allPackages.Count == 0)
+        {
+            return (0, 0, ["No packages found in export file"]);
         }
 
         int succeeded = 0;
         int failed = 0;
         var errors = new List<string>();
-        int total = exportFile.Packages.Count;
+        int total = allPackages.Count;
 
-        for (int i = 0; i < exportFile.Packages.Count; i++)
+        for (int i = 0; i < allPackages.Count; i++)
         {
-            var pkg = exportFile.Packages[i];
+            var pkg = allPackages[i];
             onProgress?.Invoke(i + 1, total, pkg.PackageIdentifier);
 
             var result = await InstallAsync(pkg.PackageIdentifier, ct);

@@ -417,7 +417,14 @@ public class InstalledView : View
             {
                 progressBar.Fraction = 1f;
                 statusLabel.Text = "Import Complete";
-                resultsLabel.Text = $"✓ {succeeded} succeeded, ✗ {failed} failed";
+                if (succeeded == 0 && failed == 0 && errors.Count > 0)
+                {
+                    resultsLabel.Text = $"⚠ {errors[0]}";
+                }
+                else
+                {
+                    resultsLabel.Text = $"✓ {succeeded} succeeded, ✗ {failed} failed";
+                }
                 resultsLabel.Visible = true;
                 progressLabel.Visible = false;
                 currentPackageLabel.Visible = false;
